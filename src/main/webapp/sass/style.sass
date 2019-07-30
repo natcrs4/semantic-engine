@@ -1,0 +1,82 @@
+/* TODO
+ * - polish UI 
+ *   - remove placeholder
+ *   - add search button
+ */
+
+@import url('https://fonts.googleapis.com/css?family=Lato:400,700')
+
+$fontcolor: snow
+$hovercolor: greenyellow
+$bodybg: slategray
+$transbg: rgba(3, 3, 3, 0.1)
+$radius: 1em
+$lato-font: 'Lato', sans-serif
+
+body 
+	margin: 4em
+	background: $bodybg
+	color: $fontcolor
+
+form 
+	text-align: center
+	margin-bottom: 2em
+	
+.wrapper 
+	max-width: 60em
+	margin: 0 auto
+
+#search
+	padding: 1em 0
+	text-align: center
+	border: solid 1px $bodybg
+	width: 100%
+	display: block
+	margin: 0 auto
+	border-radius: $radius
+
+form .button
+	display: block
+	color: #fff
+	width: 35%
+	margin: 0 auto
+	background: $transbg
+	padding: 0.25em 0
+	text-decoration: none
+	border-radius: 0 0 $radius $radius
+	border: solid 1px $transbg
+	border-top: none
+
+form a:hover
+	border: solid 1px $hovercolor
+	border-top: none
+
+#search:focus
+	border: solid 1px $hovercolor
+	outline: none
+
+.result
+	background: $transbg
+	padding: 1em
+	margin: 1em 0
+	display: block
+	text-decoration: none
+	color: $fontcolor
+	border: solid 1px $transbg
+	clear: both
+	border-radius: $radius
+
+.result h3
+	margin: 0 0 1em 0
+	letter-spacing: 1px
+	text-shadow: 1px 1px 2px #333
+	font-family: $lato-font
+
+.result p
+	margin: 0
+
+.result:hover 
+	border: solid 1px $hovercolor
+
+.searchmatch
+	color: $hovercolor

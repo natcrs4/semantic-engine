@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+ <link rel="stylesheet" href="css/style.css">
+</head>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+<body >
+
+<div ng-app="myApp" ng-controller="myCtrl">
+
+<p contenteditable="true" class="peditable">Una risposta agli attacchi della Lega contro la magistratura arriva dall'interno della maggioranza di governo : dal ministro della Giustizia Alfonso Bonafede : Tutti devono potersi difendere fino all'ultimo grado di giudizio . Poi , pero , le sentenze vanno rispettate , senza evocare scenari che sembrano appartenere piu alla Seconda Repubblica . Cosi , interpellato dall'Ansa , il ministro della Giustizia , Alfonso Bonafede , commenta la vicenda della sentenza della Cassazione sui fondi della Lega .
+</p>
+<button  ng-click="nerdetect()" id="search" >detect entities </button>
+
+</div>
+<ul>
+  <li class="gpe">GEOPOLITICAL ENTITIES</li>
+  <li class="loc">LOCATION</li>
+  <li class="per">PERSONAL ENTITIES</li>
+  <li class="org">ORGANIZATIONS</li>
+</ul>
+</body>
+<script>
+var app = angular.module('myApp', []);
+app.controller('myCtrl', function($scope,$http) {
+	//if(!$scope.contentp)
+	//$scope.contentp="Tony Blair has called for a cross-party movement to fight Brexit admitting that the debilitation of the Labour Party he once led had become a facilitator of Britain's departure from the European Union. In a keynote speech in the same London location where David Cameron announced his plan to hold an EU referendum, Mr Blair lambasted the government for not being in control of the Brexit process. He reserved his strongest criticism for his old party, now led by Jeremy Corbyn, who he said were no longer a credible opposition to the forces that were intent on a hard Brexit.";
+    $scope.peditable = document.querySelector('.peditable');
+    
+    $scope.nerdetect = function() {
+        var doc = {
+				title : "",
+				description : $scope.peditable.textContent
+			};
+        $http.post("rest/entities/detect",doc).then(function(response) {
+			var data = response.data;
+			var replacedText=rebuildText(data);
+			$scope.peditable.innerHTML = replacedText;
+ 		})
+    }
+});
+function rebuildText(data){
+	var replacedText="";
+	for(var i in data){
+	    var elem=data[i];
+		if((elem.tag)&&(elem.tag.startsWith("B-PER"))) replacedText+= " <mark class=\"per\">"+ elem.content +"</mark>";
+		else 
+			if((elem.tag)&&(elem.tag.startsWith("I-PER"))) replacedText+= " <mark class=\"per\">"+ elem.content +"</mark>";
+		else 
+			if((elem.tag)&&(elem.tag.startsWith("B-GPE"))) replacedText+= " <mark class=\"gpe\">"+ elem.content +"</mark>";
+			else 
+				if((elem.tag)&&(elem.tag.startsWith("I-GPE"))) replacedText+= " <mark class=\"gpe\">"+ elem.content +"</mark>";
+				else 
+					if((elem.tag)&&(elem.tag.startsWith("B-ORG"))) replacedText+= " <mark class=\"org\">"+ elem.content +"</mark>";
+					else 
+						if((elem.tag)&&(elem.tag.startsWith("I-ORG"))) replacedText+= " <mark class=\"org\">"+ elem.content +"</mark>";
+						else 
+							if((elem.tag)&&(elem.tag.startsWith("B-LOC"))) replacedText+= " <mark class=\"loc\">"+ elem.content +"</mark>";
+						    else 
+							if((elem.tag)&&(elem.tag.startsWith("I-LOC"))) replacedText+= " <mark class=\"loc\">"+ elem.content +"</mark>";
+							else 
+								if(elem.content.match("/^[.,:!?]/")) replacedText+=elem.content;
+		                         else replacedText+=" "+elem.content;
+	}
+return replacedText;
+}
+</script>
+</html>

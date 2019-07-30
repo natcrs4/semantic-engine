@@ -1,0 +1,711 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.crs4</groupId>
+	<artifactId>semantic-engine</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>${packaging.type}</packaging>
+	<properties>
+		<jersey.version>2.10</jersey.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+		<project.version>1.0-SNAPSHOT</project.version>
+		<metrics.version>3.2.2</metrics.version>
+	</properties>
+	<profiles>
+		<profile>
+			<id>cmd</id>
+			<properties>
+			
+				<packaging.type>jar</packaging.type>
+			</properties>
+			<activation>
+
+				<activeByDefault>false</activeByDefault>
+				<property>
+					<name>performRelease</name>
+					<value>true</value>
+				</property>
+			</activation>
+			<build>
+				<finalName>commandline</finalName>
+				<directory>${project.basedir}/commandtarget</directory>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-dependency-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>copy-dependencies</id>
+								<phase>prepare-package</phase>
+								<goals>
+									<goal>copy-dependencies</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>
+										${project.build.directory}/libs
+									</outputDirectory>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jar-plugin</artifactId>
+
+						<configuration>
+							<archive>
+								<manifest>
+									<addClasspath>true</addClasspath>
+									<classpathPrefix>libs/</classpathPrefix>
+									<mainClass>com.crs4.sem.commandline.NewCommandLine</mainClass>
+								</manifest>
+							</archive>
+						</configuration>
+
+					</plugin>
+				</plugins>
+			</build>
+			<dependencies>
+				<dependency>
+					<groupId>org.jboss.logging</groupId>
+					<artifactId>jboss-logging</artifactId>
+					<version>3.3.0.Final</version>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>war</id>
+			<properties>
+				<packaging.type>war</packaging.type>
+			</properties>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+
+			</activation>
+			<build>
+				<finalName>semantic-engine</finalName>
+                <directory>${project.basedir}/wartarget</directory>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-war-plugin</artifactId>
+						<configuration>
+							<webResources>
+								<resource>
+									<!-- this is relative to the pom.xml directory -->
+									<directory>src/main/resources/swagger-ui/</directory>
+									<targetPath>docs</targetPath>
+								</resource>
+							</webResources>
+						</configuration>
+					</plugin>
+					  
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.8.0</version>
+						<inherited>true</inherited>
+						<configuration>
+							<source>1.8</source>
+							<target>1.8</target>
+						</configuration>
+					</plugin>
+					<!-- <plugin> -->
+					<!-- <groupId>org.apache.maven.plugins</groupId> -->
+					<!-- <artifactId>maven-site-plugin</artifactId> -->
+					<!-- <version>3.3</version> -->
+					<!-- </plugin> -->
+					<!-- <plugin> -->
+					<!-- <groupId>org.apache.maven.plugins</groupId> -->
+					<!-- <artifactId>maven-project-info-reports-plugin</artifactId> -->
+					<!-- <version>2.7</version> -->
+					<!-- </plugin> -->
+
+					<plugin>
+						<groupId>org.eclipse.jetty</groupId>
+						<artifactId>jetty-maven-plugin</artifactId>
+						<version>9.4.12.RC1</version>
+					</plugin>
+					
+  
+        <plugin>
+            <groupId>org.codehaus.cargo</groupId>
+            <artifactId>cargo-maven2-plugin</artifactId>
+            <configuration>
+                <container>
+                    <containerId>glassfish4x</containerId>
+                    <type>installed</type>
+                    <!-- Path to directory where glassfish is installed -->
+                    <home>/Users/mariolocci/Desktop/glassfish4</home>
+                </container>
+                <configuration>
+                    <type>existing</type>
+                    <!-- Path to domains directory -->
+                    <home>/Users/mariolocci/Desktop/glassfish4/glassfish/domains</home>
+                    <properties>
+                        <!-- Domain name where application will be deployed. -->
+                        <cargo.glassfish.domain.name>domain1</cargo.glassfish.domain.name>
+                        <!-- Glassfish user to authenticate -->
+                        <cargo.remote.username>admin</cargo.remote.username>
+                        <!-- Glassfish password to authenticate -->
+                        <cargo.remote.password>admin</cargo.remote.password>
+                    </properties>
+                </configuration>
+            </configuration>
+        </plugin>
+  
+
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>warlocale</id>
+			<properties>
+				<packaging.type>war</packaging.type>
+			</properties>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+
+			</activation>
+			<build>
+				<finalName>semantic-engine</finalName>
+                <directory>${project.basedir}/wartarget</directory>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-war-plugin</artifactId>
+						<configuration>
+							<webResources>
+								<resource>
+									<!-- this is relative to the pom.xml directory -->
+									<directory>src/main/resources/swagger-ui/</directory>
+									<targetPath>docs</targetPath>
+								</resource>
+								 <resource>
+                                <directory>configurations/locale</directory>
+                                <targetPath>WEB-INF/classes</targetPath>
+                            </resource>
+							</webResources>
+						</configuration>
+					</plugin>
+					  
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.8.0</version>
+						<inherited>true</inherited>
+						<configuration>
+							<source>1.8</source>
+							<target>1.8</target>
+						</configuration>
+					</plugin>
+					<!-- <plugin> -->
+					<!-- <groupId>org.apache.maven.plugins</groupId> -->
+					<!-- <artifactId>maven-site-plugin</artifactId> -->
+					<!-- <version>3.3</version> -->
+					<!-- </plugin> -->
+					<!-- <plugin> -->
+					<!-- <groupId>org.apache.maven.plugins</groupId> -->
+					<!-- <artifactId>maven-project-info-reports-plugin</artifactId> -->
+					<!-- <version>2.7</version> -->
+					<!-- </plugin> -->
+
+					<plugin>
+						<groupId>org.eclipse.jetty</groupId>
+						<artifactId>jetty-maven-plugin</artifactId>
+						<version>9.4.12.RC1</version>
+					</plugin>
+					
+  
+        <plugin>
+            <groupId>org.codehaus.cargo</groupId>
+            <artifactId>cargo-maven2-plugin</artifactId>
+            <configuration>
+                <container>
+                    <containerId>glassfish4x</containerId>
+                    <type>installed</type>
+                    <!-- Path to directory where glassfish is installed -->
+                    <home>/Users/mariolocci/Desktop/glassfish4</home>
+                </container>
+                <configuration>
+                    <type>existing</type>
+                    <!-- Path to domains directory -->
+                    <home>/Users/mariolocci/Desktop/glassfish4/glassfish/domains</home>
+                    <properties>
+                        <!-- Domain name where application will be deployed. -->
+                        <cargo.glassfish.domain.name>domain1</cargo.glassfish.domain.name>
+                        <!-- Glassfish user to authenticate -->
+                        <cargo.remote.username>admin</cargo.remote.username>
+                        <!-- Glassfish password to authenticate -->
+                        <cargo.remote.password>admin</cargo.remote.password>
+                    </properties>
+                </configuration>
+            </configuration>
+        </plugin>
+  
+
+				</plugins>
+			</build>
+		</profile>
+				<profile>
+			<id>warsos</id>
+			<properties>
+				<packaging.type>war</packaging.type>
+			</properties>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+
+			</activation>
+			<build>
+				<finalName>semantic-engine-sos</finalName>
+                <directory>${project.basedir}/wartarget</directory>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-war-plugin</artifactId>
+						<configuration>
+							<webResources>
+								<resource>
+									<!-- this is relative to the pom.xml directory -->
+									<directory>src/main/resources/swagger-ui/</directory>
+									<targetPath>docs</targetPath>
+								</resource>
+								 <resource>
+                                <directory>configurations/sosengine</directory>
+                                <targetPath>WEB-INF/classes</targetPath>
+                            </resource>
+							</webResources>
+						</configuration>
+					</plugin>
+					  
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.8.0</version>
+						<inherited>true</inherited>
+						<configuration>
+							<source>1.8</source>
+							<target>1.8</target>
+						</configuration>
+					</plugin>
+					<!-- <plugin> -->
+					<!-- <groupId>org.apache.maven.plugins</groupId> -->
+					<!-- <artifactId>maven-site-plugin</artifactId> -->
+					<!-- <version>3.3</version> -->
+					<!-- </plugin> -->
+					<!-- <plugin> -->
+					<!-- <groupId>org.apache.maven.plugins</groupId> -->
+					<!-- <artifactId>maven-project-info-reports-plugin</artifactId> -->
+					<!-- <version>2.7</version> -->
+					<!-- </plugin> -->
+
+					<plugin>
+						<groupId>org.eclipse.jetty</groupId>
+						<artifactId>jetty-maven-plugin</artifactId>
+						<version>9.4.12.RC1</version>
+					</plugin>
+					
+  
+        <plugin>
+            <groupId>org.codehaus.cargo</groupId>
+            <artifactId>cargo-maven2-plugin</artifactId>
+            <configuration>
+                <container>
+                    <containerId>glassfish4x</containerId>
+                    <type>installed</type>
+                    <!-- Path to directory where glassfish is installed -->
+                    <home>/Users/mariolocci/Desktop/glassfish4</home>
+                </container>
+                <configuration>
+                    <type>existing</type>
+                    <!-- Path to domains directory -->
+                    <home>/Users/mariolocci/Desktop/glassfish4/glassfish/domains</home>
+                    <properties>
+                        <!-- Domain name where application will be deployed. -->
+                        <cargo.glassfish.domain.name>domain1</cargo.glassfish.domain.name>
+                        <!-- Glassfish user to authenticate -->
+                        <cargo.remote.username>admin</cargo.remote.username>
+                        <!-- Glassfish password to authenticate -->
+                        <cargo.remote.password>admin</cargo.remote.password>
+                    </properties>
+                </configuration>
+            </configuration>
+        </plugin>
+  
+
+				</plugins>
+			</build>
+		</profile>
+<profile>
+			<id>micro</id>
+			<properties>
+				<packaging.type>war</packaging.type>
+			</properties>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<build>
+				<finalName>semantic-engine</finalName>
+                <directory>${project.basedir}/microtarget</directory>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-war-plugin</artifactId>
+						<configuration>
+							<webResources>
+								<resource>
+									<!-- this is relative to the pom.xml directory -->
+									<directory>src/main/resources/swagger-ui/</directory>
+									<targetPath>docs</targetPath>
+								</resource>
+								 <resource>
+                                <directory>configurations/locale</directory>
+                                <targetPath>WEB-INF/classes</targetPath>
+                            </resource>
+							</webResources>
+						</configuration>
+					</plugin>
+					  
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.8.0</version>
+						<inherited>true</inherited>
+						<configuration>
+							<source>1.8</source>
+							<target>1.8</target>
+						</configuration>
+					</plugin>
+					
+					<plugin>
+						<groupId>org.eclipse.jetty</groupId>
+						<artifactId>jetty-maven-plugin</artifactId>
+						<version>9.4.12.RC1</version>
+					</plugin>
+					
+  
+
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.glassfish.jersey</groupId>
+				<artifactId>jersey-bom</artifactId>
+				<version>${jersey.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+	<dependencies>
+		<!-- <dependency> -->
+		<!-- <groupId>com.spotify.docgenerator</groupId> -->
+		<!-- <artifactId>scanner</artifactId> -->
+		<!-- <version>0.0.1</version> -->
+		<!-- </dependency> -->
+		<dependency>
+			<groupId>org.glassfish.jersey.containers</groupId>
+			<artifactId>jersey-container-servlet-core</artifactId>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/io.swagger/swagger-jaxrs -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-csv</artifactId>
+			<version>1.5</version>
+		</dependency>
+		<dependency>
+    <groupId>org.hibernate</groupId>
+    <artifactId>hibernate-ehcache</artifactId>
+    <version>5.1.3.Final</version>
+</dependency>
+		<dependency>
+			<groupId>org.glassfish.jersey.media</groupId>
+			<artifactId>jersey-media-multipart</artifactId>
+			<!-- <version>${jersey-version}</version> -->
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.glassfish.jersey.containers</groupId>
+			<artifactId>jersey-container-grizzly2-http</artifactId>
+			<version>${jersey.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.dropwizard.metrics</groupId>
+			<artifactId>metrics-jersey2</artifactId>
+			<version>${metrics.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.swagger</groupId>
+			<artifactId>swagger-jersey2-jaxrs</artifactId>
+			<version>1.5.9</version>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-search-orm</artifactId>
+			<version>5.6.0.Final</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.jboss.logging</groupId>
+					<artifactId>jboss-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>eu.danieldk.nlp.jitar</groupId>
+			<artifactId>jitar</artifactId>
+			<version>0.3.5-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-lang</groupId>
+			<artifactId>commons-lang</artifactId>
+			<version>2.6</version>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-entitymanager</artifactId>
+			<version>5.1.3.Final</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.jboss.logging</groupId>
+					<artifactId>jboss-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- <dependency> -->
+		<!-- <groupId>org.apache.jena</groupId> -->
+		<!-- <artifactId>jena-fuseki-embedded</artifactId> -->
+		<!-- <version>3.7.0</version> Set the version -->
+		<!-- </dependency> -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.2</version>
+			<!-- <scope>provided</scope> -->
+		</dependency>
+		<dependency>
+			<groupId>org.aeonbits.owner</groupId>
+			<artifactId>owner</artifactId>
+			<version>1.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>javax.enterprise</groupId>
+			<artifactId>cdi-api</artifactId>
+			<!-- <scope>provided</scope> -->
+			<version>1.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
+			<version>7.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.logging</groupId>
+			<artifactId>jboss-logging</artifactId>
+			<version>3.3.0.Final</version>
+			<scope>test</scope>
+
+		</dependency>
+		<dependency>
+			<groupId>org.glassfish.jersey.media</groupId>
+			<artifactId>jersey-media-json-jackson</artifactId>
+			<version>${jersey.version}</version>
+			<!-- <scope>provided</scope> -->
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.7.6</version>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<version>1.3.173</version>
+		</dependency>
+		<dependency>
+			<groupId>rome</groupId>
+			<artifactId>rome</artifactId>
+			<version>1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+		</dependency>
+		<dependency>
+			<groupId>com.crs4.sem</groupId>
+			<artifactId>taxonomy-core</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.crs4.sem</groupId>
+			<artifactId>text-model</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.ibm.icu/icu4j -->
+		<dependency>
+			<groupId>com.ibm.icu</groupId>
+			<artifactId>icu4j</artifactId>
+			<version>63.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.crs4.sem</groupId>
+			<artifactId>hierarchical-classifier</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+			<!-- <exclusions> -->
+			<!-- <exclusion> -->
+			<!-- <groupId>com.fasterxml.jackson.core</groupId> -->
+			<!-- <artifactId>jackson-databind</artifactId> -->
+			<!-- </exclusion> -->
+			<!-- <exclusion> -->
+			<!-- <groupId>com.crs4.sem</groupId> -->
+			<!-- <artifactId>taxonomy-core</artifactId> -->
+			<!-- </exclusion> -->
+			<!-- </exclusions> -->
+		</dependency>
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>8.0.16</version>
+
+			<!-- <scope>test</scope> -->
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/commons-cli/commons-cli -->
+		<dependency>
+			<groupId>commons-cli</groupId>
+			<artifactId>commons-cli</artifactId>
+			<version>1.4</version>
+		</dependency>
+		<dependency>
+    <groupId>commons-codec</groupId>
+    <artifactId>commons-codec</artifactId>
+    <version>1.9</version>
+</dependency>
+		<dependency>
+    <groupId>c3p0</groupId>
+    <artifactId>c3p0</artifactId>
+    <version>0.9.1.2</version>
+</dependency>
+	</dependencies>
+	<repositories>
+		<repository>
+			<id>redhat</id>
+			<name>redhat</name>
+			<url>https://maven.repository.redhat.com/ga</url>
+		</repository>
+		<repository>
+			<id>repository nat02</id>
+			<url>http://nat02.crs4.it:8081/repository/internal/</url>
+		</repository>
+	</repositories>
+</project>
