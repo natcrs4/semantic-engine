@@ -40,6 +40,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.hash.Hashing;
 
 import info.debatty.java.stringsimilarity.Damerau;
+import info.debatty.java.stringsimilarity.JaroWinkler;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -253,10 +254,10 @@ public class NewDocument implements Documentable{
 	}
 
 	public double simile(NewDocument doc) {
-		Damerau d = new Damerau();
-		double aux = d.distance(this.getTitle(), doc.getTitle())
-				+ d.distance(this.getDescription(), doc.getDescription());
-		double urldist = d.distance(this.getUrl(), doc.getUrl());
+		JaroWinkler d =  new JaroWinkler();
+		double aux = d.similarity(this.getTitle()==null?"":this.getTitle(), doc.getTitle()==null?"":doc.getTitle())
+				+ d.similarity(this.getDescription()==null?"":this.getDescription(), doc.getDescription()==null?"":doc.getDescription());
+		double urldist = d.similarity(this.getUrl(), doc.getUrl());
 
 		return aux + urldist;
 	}

@@ -199,6 +199,8 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			query += " +(categories:" + categories + ")";
 		NewSearchResult searchResult = this.luceneService.parseSearch(text, query, from_date, to_date, start, maxresults,
 				score, analyzer,links);
+		List<NewDocument> duplicated = documentService.removeDuplicated(searchResult.getDocuments());
+		searchResult.setDuplicated(duplicated);
        samplesize=samplesize>1000?1000:samplesize;
 		if (histograms) {
 			if (start == 0 && maxresults >= samplesize) {
@@ -213,6 +215,8 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			else {
 				NewSearchResult temp = this.luceneService.parseSearch(text, query, from_date, to_date, 0, samplesize,
 						score, analyzer,links);
+				 duplicated = documentService.removeDuplicated(temp.getDocuments());
+				temp.setDuplicated(duplicated);
 
 				if (detect) {
 					Analyzer analyzer = new ShingleAnalyzerWrapper(2, 3);
@@ -231,8 +235,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			}
 
 		}
-		documentService.removeDuplicated(searchResult.getDocuments());
-		
+
 		searchResult= this.addMetadataFromShado(shadoService,searchResult);
 		return searchResult;
 	}

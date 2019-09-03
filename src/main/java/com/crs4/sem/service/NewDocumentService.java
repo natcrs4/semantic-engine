@@ -938,11 +938,13 @@ public class NewDocumentService extends HibernateService{
 	
 	public List<NewDocument> removeDuplicated(List<NewDocument> documents){
 		List<NewDocument> result=new ArrayList<NewDocument>();
-		for( int i=0;i<documents.size();i++)
-			for( int j=i+1;j<documents.size();j++)
-				if(documents.get(i).simile(documents.get(j))>=0.99d)
+		for( int i=0;i<documents.size();i++) {
+			for( int j=i+1;j<documents.size();j++) {
+				if(documents.get(i).simile(documents.get(j))>=2.9d)
 				 result.add(documents.get(j));
 				
+			}
+		}	
 		documents.removeAll(result);
 		return result;			
 	}

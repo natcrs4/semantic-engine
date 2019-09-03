@@ -13,9 +13,11 @@ public class NewSearchResult {
 	
 	private Integer totaldocs;
 	private List<NewDocument> documents;
+	private List<NewDocument> duplicated;
 	private List<PairStringInteger> keywords;
 	private List<PairStringInteger> categories;
 	private List<PairStringInteger> dates;
 	private List<PairStringInteger> authors;
 	private List<PairStringInteger> types;
+	
 }
