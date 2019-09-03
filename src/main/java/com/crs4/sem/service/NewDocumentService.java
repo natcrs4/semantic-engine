@@ -308,7 +308,7 @@ public class NewDocumentService extends HibernateService{
 		} finally {
 			session.close();
 		}
-
+        
 		NewSearchResult searchResult = NewSearchResult.builder().documents(result).totaldocs(totaldocs).build();
 		return searchResult;
 	}
@@ -935,4 +935,20 @@ public class NewDocumentService extends HibernateService{
 	
 		
 	}
+	
+	public List<NewDocument> removeDuplicated(List<NewDocument> documents){
+		List<NewDocument> result=new ArrayList<NewDocument>();
+		for( int i=0;i<documents.size();i++)
+			for( int j=i+1;j<documents.size();j++)
+				if(documents.get(i).simile(documents.get(j))>=0.99d)
+				 result.add(documents.get(j));
+				
+		documents.removeAll(result);
+		return result;			
+	}
+	public void deleteAll(List<NewDocument> documents) {
+		for(NewDocument doc:documents)
+			deleteDocument(doc.getInternal_id());
+	}
+	
 }

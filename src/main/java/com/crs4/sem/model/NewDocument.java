@@ -39,6 +39,7 @@ import com.crs4.sem.search.bridges.IterableJsonBridge;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.hash.Hashing;
 
+import info.debatty.java.stringsimilarity.Damerau;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -249,6 +250,15 @@ public class NewDocument implements Documentable{
 			mt.setId(DigestUtils.md5Hex(mt.getUrl())) ;
 		}
 			
+	}
+
+	public double simile(NewDocument doc) {
+		Damerau d = new Damerau();
+		double aux = d.distance(this.getTitle(), doc.getTitle())
+				+ d.distance(this.getDescription(), doc.getDescription());
+		double urldist = d.distance(this.getUrl(), doc.getUrl());
+
+		return aux + urldist;
 	}
 	
 }

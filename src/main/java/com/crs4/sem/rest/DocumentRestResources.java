@@ -152,7 +152,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			to_date = df.parse(to);
 		NewSearchResult searchResult = this.documentService.parseSearch(text, query, from_date, to_date, start, maxresults,
 				score, analyzer,links);
-
+      
 		return searchResult;
 	}
 
@@ -231,6 +231,8 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			}
 
 		}
+		documentService.removeDuplicated(searchResult.getDocuments());
+		
 		searchResult= this.addMetadataFromShado(shadoService,searchResult);
 		return searchResult;
 	}
