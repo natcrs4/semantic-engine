@@ -32,8 +32,8 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.Data;
 
-//@Stateless
-@ApplicationScoped
+@Stateless
+//@ApplicationScoped
 @Path("/entities")
 @Data
 @Api(value = "Entity", description = "Resources api for detect semantic entities from document and text")

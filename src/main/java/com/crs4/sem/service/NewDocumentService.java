@@ -7,6 +7,8 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,6 +45,7 @@ import org.hibernate.search.FullTextQuery;
 import org.hibernate.search.FullTextSession;
 import org.hibernate.search.Search;
 import org.hibernate.search.SearchFactory;
+import org.hibernate.search.exception.EmptyQueryException;
 import org.hibernate.search.query.dsl.QueryBuilder;
 import org.hibernate.search.stat.Statistics;
 import org.hibernate.service.ServiceRegistry;
@@ -52,6 +55,7 @@ import org.neo4j.graphalgo.impl.PageRankResult;
 import com.crs4.sem.analysis.CommaAnalyzer;
 import com.crs4.sem.lucene.similarity.EntityRankScoreQuery;
 import com.crs4.sem.lucene.similarity.ScoreRankScoreQuery;
+import com.crs4.sem.lucene.similarity.USimileRankScoreQuery;
 import com.crs4.sem.model.Author;
 import com.crs4.sem.model.Document;
 import com.crs4.sem.model.Documentable;
@@ -61,6 +65,7 @@ import com.crs4.sem.model.NewSearchResult;
 import com.crs4.sem.model.Page;
 import com.crs4.sem.model.Shado;
 import com.crs4.sem.model.lucene.EntityDocumentBuilder;
+import com.crs4.sem.rest.exceptions.MalformedQueryException;
 import com.crs4.sem.rest.serializer.DateSerializer;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -74,6 +79,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 
 public class NewDocumentService extends HibernateService{
+	
+	public class TimeStampComparator implements Comparator<NewDocument>{
+
+		@Override
+		public int compare(NewDocument o1, NewDocument o2) {
+			return o1.getTimestamp().compareTo(o2.getTimestamp());
+			
+		}}
 	public static final Logger logger = Logger.getLogger(NewDocumentService.class);
 	
 	
@@ -374,6 +387,7 @@ public class NewDocumentService extends HibernateService{
 			FullTextQuery fullTextQuery = fts.createFullTextQuery(rangeQuery, NewDocument.class);
 			fullTextQuery.setFirstResult(start);
 			fullTextQuery.setMaxResults(maxresults);
+			
 
 			// execute search
 			
@@ -396,7 +410,7 @@ public class NewDocumentService extends HibernateService{
 		} finally {
 			session.close();
 		}
-
+        Collections.sort(result,new NewDocumentService.TimeStampComparator());
 		NewSearchResult searchResult = NewSearchResult.builder().documents(result).totaldocs(totaldocs).build();
 		return searchResult;
 	}
@@ -471,24 +485,28 @@ public class NewDocumentService extends HibernateService{
 	public Long classifyAll(TextClassifier classifier, int start , int maxresults) {
 		// EntityManager em = entityManagerFactory.createEntityManager();
 		Session session = factory.openSession();
-		FullTextSession fts = Search.getFullTextSession(session);
-		Transaction tx = fts.beginTransaction();
-		QueryBuilder qb = fts.getSearchFactory().buildQueryBuilder().forEntity(NewDocument.class).get();
-		org.apache.lucene.search.Query luceneQuery = qb.keyword().onFields("trainable").matching("false").createQuery();
+		FullTextSession fullTextSession = Search.getFullTextSession(session);
+		fullTextSession.setFlushMode(FlushMode.MANUAL);
+		fullTextSession.setCacheMode(CacheMode.IGNORE);
+		Transaction transaction = fullTextSession.beginTransaction();
+		// Scrollable results will avoid loading too many objects in memory
+		ScrollableResults scroll = fullTextSession.createCriteria(NewDocument.class).setFirstResult(start).setFetchSize(maxresults)
+				.setMaxResults(maxresults).scroll(ScrollMode.FORWARD_ONLY);
 		
-		FullTextQuery fullTextQuery = fts.createFullTextQuery(luceneQuery, NewDocument.class);
-		fullTextQuery.setFirstResult(start);
-		fullTextQuery.setMaxResults(maxresults);
-		Iterator<NewDocument> iterator = fullTextQuery.iterate();
+		//FullTextQuery fullTextQuery = fts.createFullTextQuery(luceneQuery, NewDocument.class).setFetchSize(maxresults);
+	
+		
 		Long i = 0L;
 		Long index = 0L;
-		while (iterator.hasNext()) {
-			NewDocument doc = iterator.next();
+		try {
+		while (scroll.next()) {
+			NewDocument doc = (NewDocument)scroll.get(0);
 
 			List<ScoredItem> result;
 			try {
+				 if(doc.getTrainable()==false) {
 				result = classifier.classify(doc);
-
+               
 				String[] categories = DocumentService.firstTwoCategories(result);
 
 				if (categories != null) {
@@ -496,17 +514,65 @@ public class NewDocumentService extends HibernateService{
 					session.update(doc);
 					i++;
 				}
-
+				 }
 			} catch (IOException e) {
 				logger.error(""+e);
 			}
 			
 			index++;
 		}
-		tx.commit();
-		session.close();
+		transaction.commit();
+		}catch (RuntimeException e) {
+			if (transaction != null)
+				transaction.rollback();
+			throw e; // or display error message
+		} finally {
+			session.close();
+		}
+	
+		
 		logger.info( "classified :" +(start+index)+" documents");
 		return index;
+
+	}
+	
+	public Set<NewDocument> getReplicas( int start , int maxresults) {
+		Session session = factory.openSession();
+		FullTextSession fullTextSession = Search.getFullTextSession(session);
+		fullTextSession.setFlushMode(FlushMode.MANUAL);
+		fullTextSession.setCacheMode(CacheMode.IGNORE);
+		Transaction transaction = fullTextSession.beginTransaction();
+		// Scrollable results will avoid loading too many objects in memory
+		ScrollableResults scroll = fullTextSession.createCriteria(NewDocument.class).setFirstResult(start).setFetchSize(maxresults)
+				.setMaxResults(maxresults).scroll(ScrollMode.FORWARD_ONLY);
+		
+		Set<NewDocument> result=new HashSet<NewDocument>();
+		try {
+			
+		while (scroll.next()) {
+			NewDocument doc = (NewDocument)scroll.get(0);
+           List<NewDocument> docs;
+		try {
+			docs = this.searchEquals(doc.getTitle(), doc.getDescription(), doc.getUrl(), 0, 10, 2.8f);
+			result.addAll(docs);
+		} catch (MalformedQueryException e) {
+			logger.info(e+"");
+		}
+           
+		}
+			
+		transaction.commit();
+		}catch (RuntimeException e) {
+			if (transaction != null)
+				transaction.rollback();
+			throw e; // or display error message
+		} finally {
+			session.close();
+		}
+	
+		
+		logger.info( "replicas : found " + result.size()+" replicas");
+		return result;
 
 	}
 	public NewDocument getById(String id,Boolean links) {
@@ -654,6 +720,7 @@ public class NewDocumentService extends HibernateService{
 		});
 		this.assignIdentifiers(documents);
 		this.checkDocuments(documents);
+		documents=this.cleanReplicas(documents);
 		try {
 			
 		
@@ -720,6 +787,7 @@ public class NewDocumentService extends HibernateService{
 		 while(result>0) {
 			 start=start+big_batch;
 			 result = this.classifyAll(classifier, start, big_batch);
+			 if(start%100000==0) optimizeIndex();
 			 total+=result;
 		 }
 		 return total;
@@ -936,11 +1004,11 @@ public class NewDocumentService extends HibernateService{
 		
 	}
 	
-	public List<NewDocument> removeDuplicated(List<NewDocument> documents){
+	public List<NewDocument> removeDuplicated(List<NewDocument> documents,double threshold){
 		List<NewDocument> result=new ArrayList<NewDocument>();
 		for( int i=0;i<documents.size();i++) {
 			for( int j=i+1;j<documents.size();j++) {
-				if(documents.get(i).simile(documents.get(j))>=2.9d)
+				if(documents.get(i).simile(documents.get(j))>=threshold)
 				 result.add(documents.get(j));
 				
 			}
@@ -948,9 +1016,83 @@ public class NewDocumentService extends HibernateService{
 		documents.removeAll(result);
 		return result;			
 	}
+	public List<NewDocument> searchEquals(String title, String description, String url, int start, int maxresults,float th) throws MalformedQueryException{
+		Session session = factory.openSession();
+		List<NewDocument> result = new ArrayList<NewDocument>();
+		FullTextSession fts = Search.getFullTextSession(session);
+		Transaction tx = fts.beginTransaction();
+		Integer totaldocs = 0;
+		// create native Lucene query unsing the query DSL
+		// alternatively you can write the Lucene query using the Lucene query
+		// parser
+		// or the Lucene programmatic API. The Hibernate Search DSL is
+		// recommended though
+		NewDocument rep = NewDocument.builder().title(title).description(description).url(url).build();
+		List<NewDocument> docs= new ArrayList<NewDocument>();
+		try {
+			QueryBuilder qb = fts.getSearchFactory().buildQueryBuilder().forEntity(NewDocument.class).get();
+			BooleanQuery.Builder bool = new BooleanQuery.Builder();
+			if(title!=null&&!title.trim().isEmpty()){org.apache.lucene.search.Query title_q = qb.keyword().onFields("title")
+					.matching(title).createQuery();
+			bool.add(title_q, BooleanClause.Occur.MUST);
+			}			if(description!=null&&!description.trim().isEmpty()) {
+				org.apache.lucene.search.Query description_q = qb.keyword().onFields("description").matching(description).createQuery();
+				bool.add(description_q, BooleanClause.Occur.MUST);
+			}
+			
+	        USimileRankScoreQuery rank= new USimileRankScoreQuery(bool.build(),url);
+			FullTextQuery fullTextQuery = fts.createFullTextQuery(rank, NewDocument.class);
+
+			fullTextQuery.setFirstResult(start);
+			fullTextQuery.setMaxResults(maxresults);
+
+			// execute search
+			result = fullTextQuery.list();
+			
+			totaldocs = fullTextQuery.getResultSize();
+			
+			 for(  NewDocument doc:result)
+			 { 
+				   doc.setLinks(null);
+				   if(rep.simile(doc)>=th)
+					   docs.add(doc);
+			 }
+			tx.commit();
+		} catch (EmptyQueryException e) {
+			
+			throw new MalformedQueryException() ; // or display error message
+		} finally {
+			session.close();
+		}
+	
+		return docs;
+		
+	}
 	public void deleteAll(List<NewDocument> documents) {
 		for(NewDocument doc:documents)
 			deleteDocument(doc.getInternal_id());
 	}
-	
+
+	public static double simile(String string, org.apache.lucene.document.Document document) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	public List<NewDocument> cleanReplicas(List<NewDocument> documents) {
+		List<NewDocument> result= new ArrayList<NewDocument>();
+		for(NewDocument doc:documents) {			
+			List<NewDocument> aux;
+			try {
+				aux = this.searchEquals(doc.getTitle(), doc.getDescription(), doc.getUrl(), 0, 2, 2.8f);
+				if(aux.isEmpty())
+					result.add(doc);
+			} catch (MalformedQueryException e) {
+				logger.info(""+e);
+			}			
+				
+			
+				
+	}
+		return result;
+	}
 }

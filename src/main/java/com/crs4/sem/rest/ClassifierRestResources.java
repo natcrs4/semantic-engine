@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.ejb.Stateless;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -52,8 +53,8 @@ import io.swagger.annotations.ApiResponses;
 import lombok.Data;
 
 @Data
-//@Stateless
-@ApplicationScoped
+@Stateless
+//@ApplicationScoped
 @Path("/classifier")
 @Api(value = "Classifier", description = "Resource api for classifing text")
 public class ClassifierRestResources {
@@ -179,6 +180,7 @@ public Response train(@PathParam("name") String stringroot) throws IOException, 
 @Consumes(MediaType.APPLICATION_JSON)
 @ApiOperation(value = "Classifies all documents", notes = "Classifies all documents")
 public Response classifyDocuments(@PathParam("name") String stringroot) {
+	this.documentService.optimizeIndex();
 	Long num = this.documentService.classifyAll(this.getTextClassifier());
 	return Response.ok("classified "+num+" documents").build();
 }

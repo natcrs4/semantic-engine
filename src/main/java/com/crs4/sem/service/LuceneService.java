@@ -20,6 +20,7 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.NumericRangeQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermRangeQuery;
@@ -92,8 +93,8 @@ public class LuceneService {
 						cal.add(Calendar.YEAR, -1);
 						from = cal.getTime();
 					}
-					TermRangeQuery rangeQuery = TermRangeQuery.newStringRange("publishData", from.getTime()+"", to.getTime()+"", true, true);
-				
+					Query rangeQuery = NumericRangeQuery.newLongRange("publishDate", from.getTime(), to.getTime(), true, true);//.newStringRange("publishData", from.getTime()+"", to.getTime()+"", true, true);
+				  
 					if(luceneQuery!=null) {
 					resultQuery = new BooleanQuery.Builder().add(rangeQuery, BooleanClause.Occur.MUST)
 							.add(luceneQuery, Occur.MUST).build();
@@ -133,5 +134,10 @@ public class LuceneService {
 
 			NewSearchResult searchResult = NewSearchResult.builder().documents(result).totaldocs(totaldocs).build();
 			return searchResult;
+		}
+
+		public static String signature(Document document) {
+			// TODO Auto-generated method stub
+			return null;
 		}
 }

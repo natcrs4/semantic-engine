@@ -47,8 +47,8 @@ import io.swagger.annotations.ApiParam;
 import lombok.Data;
 
 @Data
-//@Stateless
-@ApplicationScoped
+@Stateless
+//@ApplicationScoped
 @Path("/taxonomy")
 @Api(value = "Taxonomy", description = "Resources api for building and organizing taxonomy classifiers")
 public class TaxonomyRestResuorces {

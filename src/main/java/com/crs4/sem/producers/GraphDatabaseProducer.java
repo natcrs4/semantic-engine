@@ -32,7 +32,8 @@ public class GraphDatabaseProducer implements Serializable{
 		return new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(new File(config.neo4jDirectory()))
 				.setConfig(GraphDatabaseSettings.pagecache_memory, "512M")
 				.setConfig(GraphDatabaseSettings.string_block_size, "60")
-				.setConfig(GraphDatabaseSettings.array_block_size, "300").newGraphDatabase();
+				.setConfig(GraphDatabaseSettings.array_block_size, "300")
+				.setConfig(GraphDatabaseSettings.read_only,config.neo4jreadonly()).newGraphDatabase();
 
 	}
 	

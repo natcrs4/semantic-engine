@@ -29,8 +29,8 @@ import com.crs4.sem.service.SemanticEngineService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
-//@Stateless
-@ApplicationScoped
+@Stateless
+//@ApplicationScoped
 @Path("/semantics")
 @Api(value = "Semantics", description = "Resources api for semantic processing of documents")
 public class SemanticEngineRestResources {

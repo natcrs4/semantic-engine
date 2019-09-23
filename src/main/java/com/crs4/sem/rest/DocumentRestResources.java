@@ -51,6 +51,8 @@ import com.crs4.sem.producers.AnalyzerType;
 import com.crs4.sem.producers.Analyzers;
 import com.crs4.sem.producers.DocumentProducerType;
 import com.crs4.sem.producers.ServiceType;
+import com.crs4.sem.rest.exceptions.ForbiddenStatusException;
+import com.crs4.sem.rest.exceptions.MalformedQueryException;
 import com.crs4.sem.service.DocumentService;
 import com.crs4.sem.service.LuceneService;
 import com.crs4.sem.service.NERService;
@@ -157,10 +159,26 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 	}
 
 	@GET
+	@Path("/duplicated")
+	@Produces(MediaType.APPLICATION_JSON)
+	@ApiOperation(value = "Search duplicated", notes = "rest for searching duplicated"
+			, response = NewDocument.class)
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Got it"),
+			@ApiResponse(code = 500, message = "Server is down!") })
+	public List<NewDocument> duplicated(
+			@QueryParam("tilte") @DefaultValue("") String title,
+			@QueryParam("description") @DefaultValue("") String description,
+			@QueryParam("url")  String url,
+		 @QueryParam("start") @DefaultValue("0") Integer start,
+			@QueryParam("maxresults") @DefaultValue("10") Integer maxresults,
+			@QueryParam("threshold") @DefaultValue("2.9") float threshold) throws MalformedQueryException {
+		return this.documentService.searchEquals(title, description, url, start, maxresults,threshold);
+	}
+	@GET
 	@Path("/advancedsearch")
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "Advanced search text", notes = "Advanced method for searching text."
-			+ " Setting text for free semantic search. Setting field to make constraints. Date format yyyy-MM-dd. Parameter score to force ranking with custom score.", response = NewDocument.class)
+			+ " Setting text for free semantic search. Setting field to make constraints. Date format yyyy-MM-dd. Parameter score to force ranking with custom score.", response = NewSearchResult.class)
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "Got it"),
 			@ApiResponse(code = 500, message = "Server is down!") })
 	public NewSearchResult advancedsearch(@QueryParam("text") @DefaultValue("") String text,
@@ -177,9 +195,10 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			@QueryParam("samplesize") @DefaultValue("100") Integer samplesize,
 			@QueryParam("detect") @DefaultValue("false") boolean detect,
 			@QueryParam("resolution") @DefaultValue("DAY") Resolution resolution,
-			@QueryParam("links") @DefaultValue("true") boolean links) throws Exception {
+			@QueryParam("links") @DefaultValue("true") boolean links,
+			@QueryParam("threshold") @DefaultValue("2.96") double threshold) throws Exception {
 
-		log.info("search text" + text +" start "+ start+" maxresults "+ maxresults + ""+ ((histograms)? "with statistics samplesize:"+samplesize :""));
+		
 		Date from_date = null;
 		Date to_date = null;
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
@@ -197,9 +216,10 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			query += " +(source_id:" + source + ")";
 		if (!categories.trim().isEmpty())
 			query += " +(categories:" + categories + ")";
+		log.info("search text" + text +(query==null?"":" query "+ query)+(from==null?"":" from "+from)+ (to==null?"":" to "+to)+" start "+ start+" maxresults "+ maxresults + ""+ ((histograms)? "with statistics samplesize:"+samplesize :""));
 		NewSearchResult searchResult = this.luceneService.parseSearch(text, query, from_date, to_date, start, maxresults,
 				score, analyzer,links);
-		List<NewDocument> duplicated = documentService.removeDuplicated(searchResult.getDocuments());
+		List<NewDocument> duplicated = documentService.removeDuplicated(searchResult.getDocuments(),threshold);
 		searchResult.setDuplicated(duplicated);
        samplesize=samplesize>1000?1000:samplesize;
 		if (histograms) {
@@ -215,7 +235,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			else {
 				NewSearchResult temp = this.luceneService.parseSearch(text, query, from_date, to_date, 0, samplesize,
 						score, analyzer,links);
-				 duplicated = documentService.removeDuplicated(temp.getDocuments());
+				 duplicated = documentService.removeDuplicated(temp.getDocuments(),threshold);
 				temp.setDuplicated(duplicated);
 
 				if (detect) {
@@ -406,9 +426,14 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 
 		if (status.isAllowadd()) {
 		//	addingdocs=false;
-			log.info("add all documents");
+			log.info("documents/addAll  starting");
 			for(NewDocument doc:documents)
 				doc.setTimestamp(Calendar.getInstance().getTime());
+			int sz = documents.size();
+			documents=this.documentService.cleanReplicas(documents);
+		
+				log.info(" documents/addAll found " + (sz-documents.size()) + "replicas from "+ sz + " posted ");
+			
 			if(keywords) {
 				Analyzer analyzer = new ShingleAnalyzerWrapper(2, 3);
 				Set<String> keyset = this.taxonomyService.getAllKeywords("root", true);
@@ -430,7 +455,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			this.documentService.assignIdentifiers(documents);
 			this.documentService.checkDocuments(documents);
 			int num=this.documentService.saveOrUpdateAll(documents);
-			log.info("added documents");
+			log.info("documents/addAll added documents");
 			//addingdocs=true;
 			
 			return Response.ok("uploaded "+num+" documents").build();
@@ -485,7 +510,7 @@ public NewSearchResult dump(@QueryParam("start") @DefaultValue("0") Integer star
 			@ApiParam(value = "Date from") @QueryParam("from") String from,
 			@ApiParam(value = "Date to") @QueryParam("to") String to,
 			@QueryParam("links") @DefaultValue("true") boolean links) throws ParseException {
-		if(!status.isAllowadd()) return null;
+		if(!status.isAllowadd()) throw new ForbiddenStatusException("Dump service is disabled");
 		Date from_date = null;
 		Date to_date = null;
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -494,7 +519,7 @@ public NewSearchResult dump(@QueryParam("start") @DefaultValue("0") Integer star
 		if (to != null)
 			to_date = df.parse(to);
 		NewSearchResult docs = this.documentService.dump(start, maxresults, from_date, to_date,links);
-		log.info("get all documents from date:" + from + "to date " + to);
+		log.info("dump: get all documents from date:" + from + "to date " + to);
       //  SearchResult result= this.convertToSearchResult(docs);
 		
 		return docs;

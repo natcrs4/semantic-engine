@@ -53,6 +53,7 @@ import com.crs4.sem.lucene.similarity.ScoreRankScoreQuery;
 import com.crs4.sem.model.Author;
 import com.crs4.sem.model.Document;
 import com.crs4.sem.model.Documentable;
+import com.crs4.sem.model.NewDocument;
 import com.crs4.sem.model.SearchResult;
 import com.crs4.sem.model.Shado;
 import com.crs4.sem.model.lucene.EntityDocumentBuilder;
@@ -444,6 +445,7 @@ public class DocumentService extends HibernateService {
 		 while(result>0) {
 			 start=start+big_batch;
 			 result = this.classifyAll(classifier, start, big_batch);
+			
 			 total+=result;
 		 }
 		 return total;
@@ -462,6 +464,7 @@ public class DocumentService extends HibernateService {
 		Iterator<Document> iterator = fullTextQuery.iterate();
 		Long i = 0L;
 		Long index = 0L;
+		List<Document>  docs= new ArrayList<Document>();
 		while (iterator.hasNext()) {
 			Document doc = iterator.next();
 
@@ -473,7 +476,8 @@ public class DocumentService extends HibernateService {
 
 				if (categories != null) {
 					doc.setCategories(categories);
-					session.update(doc);
+					//session.update(doc);
+					docs.add(doc);
 					i++;
 				}
 

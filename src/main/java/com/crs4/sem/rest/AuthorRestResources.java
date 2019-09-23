@@ -31,8 +31,8 @@ import com.crs4.sem.service.NewDocumentService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.Data;
-//@Stateless
-@ApplicationScoped
+@Stateless
+//@ApplicationScoped
 @Path("/authors")
 @Api(value = "Authors", description = "Authors")
 public class AuthorRestResources {

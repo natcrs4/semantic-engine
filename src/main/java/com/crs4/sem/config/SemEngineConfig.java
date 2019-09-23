@@ -11,6 +11,9 @@ public interface SemEngineConfig extends Config {
 	@Key("sem.engine.neo4j.graph.directory")
 	public String neo4jDirectory();
 	
+	@Key("sem.engine.neo4j.graph.read_only")
+	public String neo4jreadonly();
+	
     @Key("com.sun.aas.instanceRoot")	
 	public String classpath();
 

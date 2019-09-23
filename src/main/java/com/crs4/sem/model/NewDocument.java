@@ -197,7 +197,9 @@ public class NewDocument implements Documentable{
 
 	//@Override
 	public String text() {
-		return this.getTitle()!=null?this.getTitle():""+" "+this.getDescription()!=null?this.getDescription():"";
+		String aux="";
+		aux= (this.getTitle()!=null?this.getTitle():"")+" "+(this.getDescription()!=null?this.getDescription():"");
+		return aux;
 	}
 	
 	 @Column(columnDefinition="text")

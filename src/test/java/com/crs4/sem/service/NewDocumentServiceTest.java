@@ -11,7 +11,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.aeonbits.owner.ConfigFactory;
 import org.apache.lucene.document.Document;
@@ -67,6 +71,54 @@ public class NewDocumentServiceTest {
 	    		directory.close();
 	    		
 	    }
+	
+	@Test	
+	public void removeDuplicated() throws IOException{
+		
+		String source="/Users/mariolocci/Downloads/lucene_recover/com.crs4.sem.model.Document";
+		File cfgFile = new File("src/test/resources/hibernate.lucene.cfg2.xml");
+		Configuration configure = HibernateConfigurationFactory.configureDocumentService(cfgFile);
+		Map<String,String> signatures= new HashMap<String,String>();
+		NewDocumentService destination = new NewDocumentService(configure);
+		Path path = Paths.get(source);
+		Directory directory = FSDirectory.open(path);
+	    IndexReader indexReader = DirectoryReader.open(directory);
+	    int num = indexReader.numDocs()	;
+	    System.out.println(" found index whith size "+num);
+	    List<Document> documents= new ArrayList<Document>();
+	    for(int i=0;i<num;i++) {
+	    	Document document;
+	     
+			try {
+				document = indexReader.document(i);
+				if(document!=null) {
+				String signature=LuceneService.signature(document);
+				String current = signatures.get(signature);
+				if(current==null)
+					signatures.put(signature, document.get("url"));
+				else
+					if(NewDocumentService.simile(document.get("url"),document)>0.9)
+				
+					  documents.add(document);
+				}
+				
+				   if(i%200==0) { 
+			     destination.addAllLuceneDocument(documents);
+			     documents= new ArrayList<Document>();
+			     System.out.println("added "+ i + " documents");
+				   }
+			} catch ( Exception e) {
+				// TODO Auto-generated catch block
+		      e.printStackTrace();
+		      System.out.println("skipped "+ i + " documents");
+		      
+			}
+	    }
+	    		indexReader.close();
+	    		directory.close();
+	    		
+	    }
+	
 
 @Test
 public void searchText() {

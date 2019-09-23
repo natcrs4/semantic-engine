@@ -24,6 +24,7 @@ import javax.ws.rs.core.Response.Status;
 import com.crs4.sem.model.Document;
 import com.crs4.sem.model.Link;
 import com.crs4.sem.model.Shado;
+import com.crs4.sem.model.StatusSingleton;
 import com.crs4.sem.producers.DocumentProducerType;
 import com.crs4.sem.producers.ServiceType;
 import com.crs4.sem.service.AuthorService;
@@ -34,8 +35,8 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.Data;
 
-//@Stateless
-@ApplicationScoped
+@Stateless
+//@ApplicationScoped
 @Path("/shado")
 @Api(value = "Shado", description = "Shado")
 @Data
@@ -47,6 +48,8 @@ public class ShadoRestResources {
 	
 	@Inject
 	private Logger log;
+	@Inject
+	private StatusSingleton status;
 
 	@GET
 	@Path("/{id}")
@@ -73,15 +76,17 @@ public class ShadoRestResources {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "add shado links", notes = "Add a list of shado links")
 	public Response addDocument(List<Shado> shadows) {
-
+        if(status.isAllowadd()) {
 		log.info("add shado links");
 		this.shadoService.setMD5id(shadows);
 		shadows=this.shadoService.checkLinks(shadows);
-Set<Shado> shadoset= new HashSet<Shado>();
-shadoset.addAll(shadows);
+        Set<Shado> shadoset= new HashSet<Shado>();
+        shadoset.addAll(shadows);
 		this.shadoService.addAll(shadoset);
 		log.info("added " + shadows.size()+ " shado links");
 		return Response.ok().build();
+        }
+        else return Response.status(Status.FORBIDDEN).build();
 
 	}
 	
