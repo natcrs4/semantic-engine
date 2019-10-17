@@ -34,7 +34,7 @@ public class AuthorProducer {
 		   File cfgFile=  new File(path);
 		   
 		    Configuration configuration=HibernateConfigurationFactory .configureAuthorService(cfgFile);
-			AuthorService authorService= new AuthorService(configuration);		
+			AuthorService authorService= AuthorService.newInstance(configuration);		
 		    return authorService;
 	  }
 	  

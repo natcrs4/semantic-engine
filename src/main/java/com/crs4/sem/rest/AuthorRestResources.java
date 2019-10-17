@@ -34,7 +34,8 @@ import lombok.Data;
 @Stateless
 //@ApplicationScoped
 @Path("/authors")
-@Api(value = "Authors", description = "Authors")
+@Api(value = "Authors", description = "Groups a list of API Authors")
+
 public class AuthorRestResources {
 
 	@Inject
@@ -66,7 +67,9 @@ public class AuthorRestResources {
     @GET
 	@Path("/rebuild")
     @Produces(MediaType.TEXT_PLAIN)
-	@ApiOperation(value = "Rebuild index of authors", notes = "Rebuild the whole index.")
+	@ApiOperation(value = "Rebuild index of authors", notes = "Rebuild the whole index of authors. "
+			+ "Authors are extracted from documents database by analyzing 'authors' field. "
+			+ "A statistic distribution of authors are computed. Rebuild index structure can take many time.")
 	public  Response rebuild() {
 
 		log.info("rebuildind index structure, this operation can take many time ");
@@ -79,7 +82,7 @@ public class AuthorRestResources {
     @GET
    	@Path("/search")
     @Produces(MediaType.APPLICATION_JSON)
-   	@ApiOperation(value = "Search author", notes = "search from list of authors")
+   	@ApiOperation(value = "Search author", notes = "Authors can be searched using a query. Relevance is proportional to number of  documents  related to an author.")
  
 	public List<Author> search(@QueryParam("text") @DefaultValue("") String text,@QueryParam("start") @DefaultValue("0") Integer start,@QueryParam("maxresults") @DefaultValue("100") Integer maxresults) throws Exception  {
 

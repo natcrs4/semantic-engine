@@ -16,6 +16,7 @@ import com.crs4.sem.config.SemEngineConfig;
 import com.crs4.sem.rest.AuthorRestResources;
 import com.crs4.sem.rest.ClassifierRestResources;
 import com.crs4.sem.rest.NERRestReources;
+import com.crs4.sem.rest.SemanticEngineRestResources;
 import com.crs4.sem.rest.ShadoRestResources;
 import com.crs4.sem.rest.TaxonomyRestResuorces;
 
@@ -54,6 +55,7 @@ public class Application extends ResourceConfig {
         registerClasses(ShadoRestResources.class);
         registerClasses(NERRestReources.class);
         registerClasses(ClassifierRestResources.class);
+        registerClasses(SemanticEngineRestResources.class);
         
         register(new InstrumentedResourceMethodApplicationListener(METRIC_REGISTRY));
     }

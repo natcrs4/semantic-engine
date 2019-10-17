@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.inject.Singleton;
+
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
@@ -47,7 +49,7 @@ public class LuceneService {
 
 		public  IndexReader indexReader ;
 		public  IndexSearcher indexSearcher ;
-		
+		public static LuceneService instance;
 		public LuceneService(String source) throws IOException {
 		Path path = Paths.get(source);
 		Directory directory = FSDirectory.open(path);
@@ -55,6 +57,12 @@ public class LuceneService {
 	      indexSearcher = new IndexSearcher(indexReader);
 		}
 		
+		
+		public static LuceneService newInstance(String source) throws IOException {
+			if(instance==null)
+				instance=new LuceneService(source);
+			return instance;
+		}
 		public NewSearchResult parseSearch(String text, String query, Date from, Date to, int start, int maxresults,
 				boolean score, Analyzer analyzer,Boolean links) throws Exception {
 			BooleanClause.Occur[] flags = { BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD,

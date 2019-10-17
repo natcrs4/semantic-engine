@@ -41,6 +41,7 @@ import com.google.common.hash.Hashing;
 
 import info.debatty.java.stringsimilarity.Damerau;
 import info.debatty.java.stringsimilarity.JaroWinkler;
+import io.swagger.annotations.ApiModel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -54,9 +55,10 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 @AllArgsConstructor
 @Analyzer(impl=ItalianAnalyzer.class)
 @Entity
-@Cacheable
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+//@Cacheable
+//@Cache(usage = CacheConcurrencyStrategy.READ_WRITE,region="documents")
 @Table( name="NEWDOCUMENT" )
+@ApiModel(value="Document")
 public class NewDocument implements Documentable{
 	
 	@Id

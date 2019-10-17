@@ -7,6 +7,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import org.hibernate.cfg.Configuration;
 
@@ -25,7 +26,7 @@ public class DocumentProducer {
 	  
 	  
 	  @Produces
-	  @ApplicationScoped
+	  //@ApplicationScoped
 	  @DocumentProducerType(ServiceType.DOCUMENT)
 	  public NewDocumentService producer() {
 		
@@ -36,7 +37,7 @@ public class DocumentProducer {
 		   File cfgFile=  new File(path);
 		    Configuration configure = HibernateConfigurationFactory.configureDocumentService(cfgFile);
 		   
-			NewDocumentService docservice= new NewDocumentService(configure);
+			NewDocumentService docservice= NewDocumentService.newInstance(configure);
 		    return docservice;
 	  }
 	  

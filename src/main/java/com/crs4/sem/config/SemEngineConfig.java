@@ -4,7 +4,7 @@ import org.aeonbits.owner.Config;
 import org.aeonbits.owner.Config.Key;
 import org.aeonbits.owner.Config.Sources;
 
-@Sources({"classpath:semengine.properties","file:${sem.engine.basedirectory}/semengine.properties"})
+@Sources({"classpath:semengine.properties","file:${sem.engine.basedirectory}/semengine.properties","file:conf.properties"})
 public interface SemEngineConfig extends Config {
 
 	
@@ -46,11 +46,17 @@ public interface SemEngineConfig extends Config {
 
 	@Key("sem.engine.hibernate.cfg.documents")
 	public String getHibernateCFGDocuments();
+	
+	@Key("sem.engine.hibernate.sem.documents")
+	public String getHibernateSemDocuments();
 
 	@Key("sem.engine.hibernate.cfg.shado")
 	public String getHibernateCFGShado();
 	
 	@Key("sem.engine.hibernate.search.indexbase")
 	public String indexbase();
+
+	@Key("sem.engine.neo4j.sem.directory")
+	public String semneo4j();
 	
 }

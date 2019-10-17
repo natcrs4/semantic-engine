@@ -19,6 +19,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.crs4.sem.model.Document;
+import com.crs4.sem.model.Documentable;
+import com.crs4.sem.model.NewDocument;
+import com.crs4.sem.model.NewSearchResult;
 import com.crs4.sem.model.SearchResult;
 import com.crs4.sem.producers.DocumentProducerType;
 import com.crs4.sem.producers.ServiceType;
@@ -51,7 +54,7 @@ public class SemanticEngineRestResources {
     notes = "Search document from a store matching text",
     response = SearchResult.class)
 	@Produces(MediaType.APPLICATION_JSON)
-	public SearchResult searchText(@QueryParam("text") String text,@QueryParam("entities") @DefaultValue("false") Boolean entities,@QueryParam("start") @DefaultValue("0") Integer start,@QueryParam("maxresults") @DefaultValue("1000") Integer maxresults, @QueryParam("from") String from, @QueryParam("to") String to) throws IOException, ParseException {
+	public NewSearchResult searchText(@QueryParam("text") String text,@QueryParam("entities") @DefaultValue("false") Boolean entities,@QueryParam("start") @DefaultValue("0") Integer start,@QueryParam("maxresults") @DefaultValue("1000") Integer maxresults, @QueryParam("from") String from, @QueryParam("to") String to) throws IOException, ParseException {
 
 		log.info("classify text" + text);
 		Date from_date=null;
@@ -61,7 +64,7 @@ public class SemanticEngineRestResources {
 			from_date=df.parse(from);
 		if(to!=null) 
 			to_date=df.parse(to);
-		SearchResult searchResult = this.documentService.semanticSearch(text,start,maxresults);
+		NewSearchResult searchResult = this.documentService.semanticSearch(text,start,maxresults);
 		
 		return searchResult;
 	}
@@ -72,13 +75,13 @@ public class SemanticEngineRestResources {
     notes = "Search similar documents to document id",
     response = Document.class)
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<Document> similars(@PathParam("id") Long id,@QueryParam("start") @DefaultValue("0") Integer start,@QueryParam("maxresults") @DefaultValue("1000") Integer maxresults) throws IOException, ParseException {
+	public List<NewDocument> similars(@PathParam("id") Long id,@QueryParam("start") @DefaultValue("0") Integer start,@QueryParam("maxresults") @DefaultValue("1000") Integer maxresults) throws IOException, ParseException {
 
 		log.info("searching similars to document id :" + id);
-	    Document doc=this.documentService.get(id);
+	    Documentable doc=this.documentService.get(id,false);
 	  //  doc.get
 		//List<Document> docs = this.documentService.semanticSearch(doc,start,maxresults);
-	    List<Document> docs=null;
+	    List<NewDocument> docs=null;
 		return docs;
 	}
 

@@ -32,8 +32,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Cacheable
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+//@Cacheable
+//@Cache(usage = CacheConcurrencyStrategy.READ_WRITE,region="metadata")
 @Table( name="NEWMETADATA" )
 @Indexed
 @EqualsAndHashCode

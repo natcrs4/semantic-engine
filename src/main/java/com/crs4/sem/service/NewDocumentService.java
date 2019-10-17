@@ -80,6 +80,14 @@ import lombok.NoArgsConstructor;
 
 public class NewDocumentService extends HibernateService{
 	
+	public static  NewDocumentService instance;
+	
+	public static NewDocumentService newInstance(Configuration configuration) {
+		if(instance==null)
+			instance= new NewDocumentService(configuration);
+		return instance;
+	}
+	
 	public class TimeStampComparator implements Comparator<NewDocument>{
 
 		@Override
@@ -659,9 +667,18 @@ public class NewDocumentService extends HibernateService{
 
 		fullTextQuery.setFirstResult(start);
 		fullTextQuery.setMaxResults(maxresults);
-
+		 
 		// execute search
 		List<NewDocument> result = fullTextQuery.list();
+		for(NewDocument doc:result) {
+			{ if(true) {
+				 Hibernate.initialize(
+					 doc.getLinks());
+			 }
+			   else 
+				   doc.setLinks(null);
+			 }
+		}
 		totaldocs = fullTextQuery.getResultSize();
 		tx.commit();
 		session.close();

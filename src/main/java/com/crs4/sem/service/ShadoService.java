@@ -1,5 +1,6 @@
 package com.crs4.sem.service;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,8 +45,12 @@ public class ShadoService extends HibernateService{
 
 	
 	public static final Logger logger = Logger.getLogger(ShadoService.class);
-	
-	
+	public static ShadoService instance;
+	public static ShadoService newInstance(Configuration configuration) {
+		if(instance==null)
+			instance=new ShadoService(configuration);
+		return instance;
+	}
 	
 	public ShadoService(Configuration configure) {
 		super(configure);

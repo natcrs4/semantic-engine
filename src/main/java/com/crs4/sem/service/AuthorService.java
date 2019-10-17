@@ -38,6 +38,14 @@ import lombok.Data;
 
 @Data
 public class AuthorService extends HibernateService {
+	
+	public static AuthorService instance;
+	
+	public static AuthorService newInstance(Configuration configuration) {
+		if(instance==null)
+			instance=new AuthorService(configuration);
+		return instance;
+	}
 
 	public AuthorService(Configuration configuration) {
 		super(configuration);

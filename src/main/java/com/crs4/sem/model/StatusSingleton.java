@@ -13,6 +13,6 @@ public class StatusSingleton {
    
    @PostConstruct
    public void initialize() {
-	   this.setAllowadd(false);
+	   this.setAllowadd(true);
    }
 }

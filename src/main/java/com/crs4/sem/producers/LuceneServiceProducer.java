@@ -6,6 +6,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import org.apache.lucene.analysis.Analyzer;
 
@@ -14,7 +15,7 @@ import com.crs4.sem.service.LuceneService;
 
 import lombok.Data;
 
-@ApplicationScoped
+
 @Data
 public class LuceneServiceProducer {
 
@@ -31,11 +32,12 @@ public class LuceneServiceProducer {
 	   String source=config.indexbase()+"/com.crs4.sem.model.NewDocument";
 		LuceneService luceneService=null;
 		try {
-			luceneService = new LuceneService(source);
+			luceneService =  LuceneService.newInstance(source);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return luceneService;
 	}
+	
 }

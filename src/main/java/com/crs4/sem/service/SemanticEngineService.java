@@ -13,13 +13,18 @@ import org.neo4j.graphalgo.core.huge.HugeGraphFactory;
 import org.neo4j.graphalgo.impl.PageRankAlgorithm;
 import org.neo4j.graphalgo.impl.PageRankResult;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import com.crs4.sem.config.SemEngineConfig;
 import com.crs4.sem.exceptions.NotUniqueDocumentException;
 import com.crs4.sem.model.Document;
 import com.crs4.sem.model.Documentable;
+import com.crs4.sem.model.NewDocument;
+import com.crs4.sem.model.NewSearchResult;
 import com.crs4.sem.model.SearchResult;
 import com.crs4.sem.model.Term;
 import com.crs4.sem.neo4j.model.MyLabels;
@@ -32,14 +37,14 @@ import lombok.Data;
 @Data
 public class SemanticEngineService {
 	
-	private DocumentService documentService;
+	private NewDocumentService documentService;
 	private NERService nerService;
 	private NodeService nodeService;
 	private PageRankResult pageRankResult;
 	private TextClassifier textClassifier;                                 
 	
 	
-	public Long addDocument(Document doc) throws Exception  {
+	public void addDocument(NewDocument doc) throws Exception  {
 		
 		List<Term> entities_title = nerService.list(doc.getTitle());
 		List<Term> entities_description = nerService.list(doc.getDescription());
@@ -50,8 +55,8 @@ public class SemanticEngineService {
 		Node nodedoc = nodeService.createNode(MyLabels.DOCUMENT.toString(), "title", doc.getTitle());
 		doc.setEntities(toArrayString(entities));
 		doc.setNeoid(nodedoc.getId());
-		Long id = documentService.addDocument(doc);
-		nodeService.setProperty(nodedoc,"docid",id);
+		 documentService.saveOrUpdateDocument(doc);
+		nodeService.setProperty(nodedoc,"docid",doc.getId());
 		for( Term x:entities)
 		{
 			Node nodeentity=nodeService.searchNode(MyLabels.KEYWORD.toString(), "forma", x.content());
@@ -59,11 +64,11 @@ public class SemanticEngineService {
 				nodeentity=nodeService.createNode(MyLabels.KEYWORD.toString(), "forma", x.content());
 			nodeService.addRelationShip(nodedoc, nodeentity, RRelationShipType.CONTAINS);
 		}
-		return id;
+		
 		
 	}
-	public void addAll(List<Document> documents) throws Exception  {
-		for(Document doc:documents) {
+	public void addAll(List<NewDocument> documents) throws Exception  {
+		for(NewDocument doc:documents) {
 			this.addDocument(doc);
 		}
 	}
@@ -78,7 +83,7 @@ public class SemanticEngineService {
 		return result;
 	}
 
-	public SearchResult semanticSearch(String text, int start, int maxresults){
+	public NewSearchResult semanticSearch(String text, int start, int maxresults){
 		return documentService.semanticSearch(text, this.pageRank(), start, maxresults);
 	}
 	
@@ -97,19 +102,32 @@ public class SemanticEngineService {
 
 
 	public SemanticEngineService(SemEngineConfig config) throws IOException {
-		 File cfgFile=  new File(config.getHibernateCFGDocuments());
-		    Configuration configure = HibernateConfigurationFactory.configureDocumentService(cfgFile);
-			DocumentService docservice= new DocumentService(configure);
+		 String path=  config.getHibernateSemDocuments();
+		 if (path.startsWith("classpath:")) {
+		    	path=path.replace("classpath:", config.classpath()+"/applications/"+config.applicationame()+"/WEB-INF/classes/");
+		    }
+		    Configuration configure = HibernateConfigurationFactory.configureDocumentService(new File(path));
+			NewDocumentService docservice= new NewDocumentService(configure);
 		this.setDocumentService(docservice);
 		File file = new File(config.icabparameters());
 		this.setNerService(new NERService(file));
-		this.setNodeService(new NodeService(new File(config.neo4jDirectory())));
+		GraphDatabaseService graph = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(new File(config.semneo4j()))
+		.setConfig(GraphDatabaseSettings.pagecache_memory, "512M")
+		.setConfig(GraphDatabaseSettings.string_block_size, "60")
+		.setConfig(GraphDatabaseSettings.array_block_size, "300")
+		.setConfig(GraphDatabaseSettings.read_only,"false").newGraphDatabase();
+		this.setNodeService(new NodeService(graph));
 		
 	}
 
+	public SemanticEngineService(NodeService node,NERService nerservice, NewDocumentService docservice) {
+		this.setNerService(nerservice);
+		this.setDocumentService(docservice);
+		this.setNodeService(node);
+	}
 
-	public Document get(Long id) {
-	    Documentable doc=this.getDocumentService().getById(id);
-		return null;
+	public Documentable get(Long id,Boolean link) {
+	    Documentable doc=this.getDocumentService().getNaturald(id,link);
+		return doc;
 	}
 }

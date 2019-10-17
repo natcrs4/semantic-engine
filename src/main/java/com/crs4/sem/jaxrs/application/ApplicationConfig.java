@@ -16,6 +16,7 @@ import com.crs4.sem.config.SemEngineConfig;
 import com.crs4.sem.rest.AuthorRestResources;
 import com.crs4.sem.rest.ClassifierRestResources;
 import com.crs4.sem.rest.NERRestReources;
+import com.crs4.sem.rest.SemanticEngineRestResources;
 import com.crs4.sem.rest.ShadoRestResources;
 import com.crs4.sem.rest.TaxonomyRestResuorces;
 
@@ -29,7 +30,7 @@ public class ApplicationConfig extends Application {
       
 		
 		SemEngineConfig config = ConfigFactory.create(SemEngineConfig.class,System.getProperties(),System.getenv());
-		String myPackage="com.crs4.sem.rest";
+		String myPackage="com.crs4.sem.rest, com.crs4.sem.model";
         String host=config.host();
         String port=config.port();
         String myPackages = String.format("%s, io.swagger.resources", myPackage);
@@ -71,6 +72,7 @@ public class ApplicationConfig extends Application {
         resources.add(ClassifierRestResources.class);
         resources.add(MultiPartFeature.class);
         resources.add(ShadoRestResources.class);
+        resources.add(SemanticEngineRestResources.class);
         //resources.add(it.crs4.stt.recommender.filters.CORSFilter.class);
         
         //==> we could also choose packages, see below getProperties()

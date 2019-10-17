@@ -69,7 +69,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
-@Stateless
+//@Stateless
 //@ApplicationScoped
 @Path("/documents")
 @Api(value = "Documents", description = "Documents")
@@ -141,7 +141,7 @@ public class DocumentRestResources {
 			@ApiResponse(code = 500, message = "Server is down!") })
 public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			@QueryParam("query") @DefaultValue("") String query, @QueryParam("start") @DefaultValue("0") Integer start,
-			@QueryParam("maxresults") @DefaultValue("100") Integer maxresults, @QueryParam("from") String from,
+			@QueryParam("maxresults") @DefaultValue("10") Integer maxresults, @QueryParam("from") String from,
 			@QueryParam("to") String to, @QueryParam("score") @DefaultValue("false") boolean score,@QueryParam("links") @DefaultValue("true") Boolean links) throws Exception {
 		 
 		log.info("search text" + text + " with query" + query);
@@ -179,7 +179,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "Advanced search text", notes = "Advanced method for searching text."
 			+ " Setting text for free semantic search. Setting field to make constraints. Date format yyyy-MM-dd. Parameter score to force ranking with custom score.", response = NewSearchResult.class)
-	@ApiResponses(value = { @ApiResponse(code = 200, message = "Got it"),
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Got it"), @ApiResponse(code = 200, message="",response=NewSearchResult.class),
 			@ApiResponse(code = 500, message = "Server is down!") })
 	public NewSearchResult advancedsearch(@QueryParam("text") @DefaultValue("") String text,
 			@QueryParam("query") @DefaultValue("") String query_,
@@ -187,7 +187,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			@QueryParam("source_id") @DefaultValue("") String source,
 			@QueryParam("categories") @DefaultValue("") String categories,
 			@QueryParam("type") @DefaultValue("") String type, @QueryParam("start") @DefaultValue("0") Integer start,
-			@QueryParam("maxresults") @DefaultValue("100") Integer maxresults,
+			@QueryParam("maxresults") @DefaultValue("10") Integer maxresults,
 			@ApiParam(value = "Date from") @QueryParam("from") String from,
 			@ApiParam(value = "Date to") @QueryParam("to") String to,
 			@QueryParam("score") @DefaultValue("false") boolean score,
@@ -195,8 +195,8 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			@QueryParam("samplesize") @DefaultValue("100") Integer samplesize,
 			@QueryParam("detect") @DefaultValue("false") boolean detect,
 			@QueryParam("resolution") @DefaultValue("DAY") Resolution resolution,
-			@QueryParam("links") @DefaultValue("true") boolean links,
-			@QueryParam("threshold") @DefaultValue("2.96") double threshold) throws Exception {
+			@QueryParam("links") @DefaultValue("false") boolean links,
+			@QueryParam("threshold") @DefaultValue("2.9") double threshold) throws Exception {
 
 		
 		Date from_date = null;
@@ -419,7 +419,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 
 	@POST
 	@Path("/addAll")
-	 @Produces(MediaType.TEXT_PLAIN)
+	@Produces(MediaType.TEXT_PLAIN)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "addAll", notes = "Add a list of documents. Update/set  timestamp to current time.")
  public Response addDocuments(List<NewDocument> documents,@QueryParam("keywords") @DefaultValue("true") Boolean keywords,@QueryParam("classify") @DefaultValue("true") Boolean classify) throws Exception {
@@ -430,9 +430,9 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			for(NewDocument doc:documents)
 				doc.setTimestamp(Calendar.getInstance().getTime());
 			int sz = documents.size();
-			documents=this.documentService.cleanReplicas(documents);
+			//documents=this.documentService.cleanReplicas(documents);
 		
-				log.info(" documents/addAll found " + (sz-documents.size()) + "replicas from "+ sz + " posted ");
+				//log.info(" documents/addAll found " + (sz-documents.size()) + "replicas from "+ sz + " posted ");
 			
 			if(keywords) {
 				Analyzer analyzer = new ShingleAnalyzerWrapper(2, 3);
@@ -506,7 +506,7 @@ public Response uploadDocuments(@FormDataParam("file") InputStream inputStream,
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "get document", notes = "Get paginated documents. Date format yyyy-MM-dd HH:mm:ss ")
 public NewSearchResult dump(@QueryParam("start") @DefaultValue("0") Integer start,
-			@QueryParam("maxresults") @DefaultValue("1000") Integer maxresults,
+			@QueryParam("maxresults") @DefaultValue("10") Integer maxresults,
 			@ApiParam(value = "Date from") @QueryParam("from") String from,
 			@ApiParam(value = "Date to") @QueryParam("to") String to,
 			@QueryParam("links") @DefaultValue("true") boolean links) throws ParseException {
