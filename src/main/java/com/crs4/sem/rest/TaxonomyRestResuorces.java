@@ -3,15 +3,10 @@ package com.crs4.sem.rest;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
-import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -22,7 +17,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -30,16 +24,16 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.neo4j.graphdb.Node;
 
-
-import com.crs4.sem.model.Documentable;
+import com.crs4.sem.model.NewDocument;
 import com.crs4.sem.neo4j.exceptions.CategoryNotFoundException;
 import com.crs4.sem.neo4j.exceptions.CategoryNotFoundInTaxonomyException;
 import com.crs4.sem.neo4j.exceptions.TaxonomyNotFoundException;
 import com.crs4.sem.neo4j.model.CategoryNode;
-import com.crs4.sem.neo4j.model.RRelationShipType;
 import com.crs4.sem.neo4j.service.TaxonomyCSVReader;
 import com.crs4.sem.neo4j.service.TaxonomyService;
-import com.mfl.sem.classifier.model.Category;
+import com.crs4.sem.producers.DocumentProducerType;
+import com.crs4.sem.producers.ServiceType;
+import com.crs4.sem.service.NewDocumentService;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -58,6 +52,12 @@ public class TaxonomyRestResuorces {
 
 	@Inject
 	private Logger log;
+	
+	
+	@Inject
+	@DocumentProducerType(ServiceType.DOCUMENT)
+	private NewDocumentService documentService;
+
 
 	@POST
 	@Path("{name}/category/add/{parent}")
@@ -114,9 +114,11 @@ public class TaxonomyRestResuorces {
 	// @Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "put keyword to category", notes = "Put a keyword to category id")
-	public Response putKeyword(@ApiParam(value = "taxonomy name" )  @PathParam("name") @DefaultValue("root") String name,@ApiParam(value = "category id" ) @PathParam("id") String id, @ApiParam(value = "keyword" ) String keyword) {
-		log.info("put keyword "+id+"  to taxonomy" + name);
-		return null;
+	public Response putKeyword(@ApiParam(value = "taxonomy name" )  @PathParam("name") @DefaultValue("root") String name,@ApiParam(value = "category id" ) @PathParam("id") String id, @ApiParam(value = "keyword" ) String keyword) throws CategoryNotFoundException {
+		log.info("put keyword to category"+id+"  to taxonomy" + name);
+		
+		this.taxonomyService.addKeyword(id, keyword);
+		return Response.ok().build() ;
 	}
 	@GET
 	@Path("/{name}/keywords/{id}")
@@ -131,21 +133,77 @@ public class TaxonomyRestResuorces {
 	@PUT
 	@Path("/{name}/document/{id}")
 	// @Produces(MediaType.APPLICATION_JSON)
-	@Consumes(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.TEXT_PLAIN)
+	@Produces(MediaType.TEXT_PLAIN)
 	@ApiOperation(value = "put document to category ", notes = "Put document to category ")
-	public Response putDocument(@ApiParam(value = "taxonomy name" ) @PathParam("name") @DefaultValue("root") String name,@ApiParam(value = "category id" ) @PathParam("id") String id , Documentable doc) {
-		log.info("put document to taxonomy:"+name+"from category"+id);
-		return null;
+	public Response putDocument(@ApiParam(value = "taxonomy name" ) @PathParam("name") @DefaultValue("root") String name,@ApiParam(value = "category id" ) @PathParam("id") String category_id , String document_id) throws CategoryNotFoundException {
+		log.info("put document "+document_id+" to taxonomy:"+name+"from category"+category_id);
+		NewDocument doc = this.documentService.getById(document_id, true);
+		doc.setTrainable(true);
+		String categories[]=new String[1];
+		categories[0]=category_id;
+		doc.setCategories(categories);
+		
+		this.documentService.updateDocument(doc);
+		this.taxonomyService.addDocument(category_id, document_id,true);
+		
+		return Response.ok("added document to category "+category_id).build();
 	}
 
+	@GET
+	@Path("/{name}/documents/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	//@Consumes(MediaType.APPLICATION_JSON)
+	@ApiOperation(value = "get documents from given category id ", notes = "Get documents from given category id ")
+	public String [] getDocument(@ApiParam(value = "taxonomy name" )  @PathParam("name") @DefaultValue("root") String name,@ApiParam(value = "category id" ) @PathParam("id") String id ) throws CategoryNotFoundInTaxonomyException {
+		log.info("getting documents from category:"+id+"from taxonomy"+name);
+		return this.taxonomyService.getDocuments(name, id);
+	}
+	
+	@GET
+	@Path("/{name}/documents")
+	@Produces(MediaType.APPLICATION_JSON)
+	//@Consumes(MediaType.APPLICATION_JSON)
+	@ApiOperation(value = "get all trainable documents from taxonomy ", notes = "Get documents from taxonomy ")
+	public Set<String> getDocument(@ApiParam(value = "taxonomy name" )  @PathParam("name") @DefaultValue("root") String name) throws TaxonomyNotFoundException, CategoryNotFoundInTaxonomyException {
+		log.info("getting documents from taxonomy:"+name);
+		return this.taxonomyService.getAllDocuments(name);
+	}
+	
 	@DELETE
 	@Path("/{name}/document/{id}")
-	// @Produces(MediaType.APPLICATION_JSON)
-	@Consumes(MediaType.APPLICATION_JSON)
-	@ApiOperation(value = "delete document", notes = "Delete document from category ")
-	public Response deleteDocument(@ApiParam(value = "taxonomy name" ) @PathParam("name")  @DefaultValue("root")String name,@ApiParam(value = "category id" )@PathParam("id") String id,Documentable document) {
-		log.info("delete document from taxonomy:"+name+"from category"+id);
-		return null;
+    @Produces(MediaType.TEXT_PLAIN)
+	@Consumes(MediaType.TEXT_PLAIN)
+	@ApiOperation(value = "delete document", notes = "Delete document from taxonomy")
+	public Response deleteDocument(@ApiParam(value = "taxonomy name" ) @PathParam("name")  @DefaultValue("root")String name,@ApiParam(value = "document id" )@PathParam("id") String id) {
+		log.info("delete document "+id+" from taxonomy "+ name);
+		NewDocument doc = this.documentService.getById(id, true);
+	
+		doc.setCategories(null);
+		doc.setTrainable(false);
+		this.documentService.saveOrUpdateDocument(doc);
+		this.taxonomyService.deleteDocument(id);
+		return Response.ok("deleted").build();
+	}
+	
+	@DELETE
+	@Path("/{name}/documents")
+	@Consumes(MediaType.TEXT_PLAIN)
+	@Produces(MediaType.TEXT_PLAIN)
+	@ApiOperation(value = "delete all document", notes = "Delete all documents from taxonomy")
+	public Response deleteDocuments(@ApiParam(value = "taxonomy name" ) @PathParam("name")  @DefaultValue("root")String name) throws TaxonomyNotFoundException, CategoryNotFoundInTaxonomyException {
+		log.info("delete all documents ");
+	
+		Set<String> alls=this.taxonomyService.getAllDocuments(name);
+		for( String id_doc:alls) {
+			NewDocument doc = this.documentService.getById(id_doc, true);
+			
+			doc.setCategories(null);
+			doc.setTrainable(false);
+			this.documentService.updateDocument(doc);
+			this.taxonomyService.deleteDocument(id_doc);
+		}
+		return Response.ok("deleted "+alls.size()+"  documents").build();
 	}
 
 	@POST

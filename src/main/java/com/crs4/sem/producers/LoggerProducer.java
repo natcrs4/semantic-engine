@@ -10,6 +10,7 @@ public class LoggerProducer {
 
 	 @Produces
 	  public Logger producer(InjectionPoint ip){
+		 
 			   return Logger.getLogger(ip.getMember().getDeclaringClass().getName()); // or sth similar, depends on your implementation  
 			 } 
 	}

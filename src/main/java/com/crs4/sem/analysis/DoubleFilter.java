@@ -8,6 +8,8 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.analysis.util.CharacterUtils;
 
+import com.mfl.sem.analysis.AuxAttribute;
+
 import lombok.Data;
 
 @Data
@@ -17,7 +19,7 @@ public class DoubleFilter extends TokenFilter {
 
 	private final CharacterUtils charUtils = CharacterUtils.getInstance();
 	  private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
-		private final TypeAttribute typeAtt = addAttribute(TypeAttribute.class);
+		private final AuxAttribute typeAtt = addAttribute(AuxAttribute.class);
 		
 	  protected DoubleFilter(TokenStream input) {
 		super(input);

@@ -2,10 +2,12 @@ package com.crs4.sem.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.hibernate.cfg.Configuration;
 import org.neo4j.graphalgo.api.Graph;
 import org.neo4j.graphalgo.core.GraphLoader;
@@ -31,6 +33,11 @@ import com.crs4.sem.neo4j.model.MyLabels;
 import com.crs4.sem.neo4j.model.RRelationShipType;
 import com.crs4.sem.neo4j.service.NodeService;
 import com.mfl.sem.classifier.text.TextClassifier;
+import com.sun.syndication.feed.synd.SyndEntry;
+import com.sun.syndication.feed.synd.SyndFeed;
+import com.sun.syndication.io.FeedException;
+import com.sun.syndication.io.SyndFeedInput;
+import com.sun.syndication.io.XmlReader;
 
 import lombok.Data;
 
@@ -43,11 +50,21 @@ public class SemanticEngineService {
 	private PageRankResult pageRankResult;
 	private TextClassifier textClassifier;                                 
 	
+	public static SemanticEngineService instance;
+	public static SemanticEngineService newInstance(SemEngineConfig configuration) throws IOException {
+		if(instance==null)
+			instance=new SemanticEngineService(configuration);
+		return instance;
+	}
 	
+	
+	public SemanticEngineService() {
+		
+	}
 	public void addDocument(NewDocument doc) throws Exception  {
 		
-		List<Term> entities_title = nerService.list(doc.getTitle());
-		List<Term> entities_description = nerService.list(doc.getDescription());
+		List<Term> entities_title = nerService.listOfPerson(doc.getTitle());
+		List<Term> entities_description = nerService.listOfPerson(doc.getDescription());
 		Set<Term> entities= new HashSet<Term>();
 		entities.addAll(entities_title);
 		entities.addAll(entities_description);
@@ -84,7 +101,7 @@ public class SemanticEngineService {
 	}
 
 	public NewSearchResult semanticSearch(String text, int start, int maxresults){
-		return documentService.semanticSearch(text, this.pageRank(), start, maxresults);
+		return documentService.semanticSearch(text, this.getPageRankResult(), start, maxresults);
 	}
 	
 	public PageRankResult  pageRank(){
@@ -129,5 +146,50 @@ public class SemanticEngineService {
 	public Documentable get(Long id,Boolean link) {
 	    Documentable doc=this.getDocumentService().getNaturald(id,link);
 		return doc;
+	}
+	
+	
+	public void buildGraph() {
+	
+				
+				
+				String taxo[]={"esteri","economia","cronache","tecnologia","politica","mare","montagna","sport","cultura"};
+				long id=0L;
+				for (String cat:taxo){
+					try {
+				URL feedSource = new URL("http://feed.lastampa.it/"+cat+".rss");
+				SyndFeedInput input = new SyndFeedInput();
+				SyndFeed feed;
+			
+					feed = input.build(new XmlReader(feedSource));
+					String desc=feed.getDescription();
+					List<SyndEntry> entries = (List<SyndEntry>)feed.getEntries();
+				    for (SyndEntry entry: entries){
+				    	  System.out.println("Title: " + entry.getTitle());
+			        System.out.println("Link: " + entry.getLink());
+			        System.out.println("Author: " + entry.getAuthor());
+			        System.out.println("Publish Date: " + entry.getPublishedDate());
+			        System.out.println("Description: " + entry.getDescription().getValue());
+			        id++;
+			       NewDocument document=NewDocument.builder().internal_id(DigestUtils.md5Hex(entry.getLink())).id(id).authors(entry.getAuthor()).description(entry.getDescription().getValue()).url(entry.getLink()).title(entry.getTitle()).publishDate(entry.getPublishedDate()).build();
+			       document.setId(NewDocument.setHashID(document.getInternal_id().getBytes()));
+			       this.addDocument(document);
+				    } }catch (IllegalArgumentException | FeedException | IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				
+			   
+			}
+					
+					this.pageRank();
+	}
+	public void shutdown() {
+		this.getDocumentService().close();
+		this.getNodeService().getGraphDb().shutdown();
+		
 	}
 }

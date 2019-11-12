@@ -29,6 +29,8 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.LockFactory;
+import org.apache.lucene.store.NoLockFactory;
 
 import com.crs4.sem.convertes.LuceneDocumentConverter;
 import com.crs4.sem.lucene.similarity.ScoreRankScoreQuery;
@@ -52,7 +54,7 @@ public class LuceneService {
 		public static LuceneService instance;
 		public LuceneService(String source) throws IOException {
 		Path path = Paths.get(source);
-		Directory directory = FSDirectory.open(path);
+		Directory directory = FSDirectory.open(path, NoLockFactory.INSTANCE);
 	      indexReader = DirectoryReader.open(directory);
 	      indexSearcher = new IndexSearcher(indexReader);
 		}
@@ -121,9 +123,9 @@ public class LuceneService {
 				//fullTextQuery.setMaxResults(maxresults);
 
 				//collector = new TopDocsCollector(maxresults);
-				TopDocs docs = indexSearcher.search(resultQuery, maxresults);
+				TopDocs docs = indexSearcher.search(resultQuery, start+maxresults);
 				ScoreDoc[] hits = docs.scoreDocs;
-				   int max = Math.min(maxresults, docs.totalHits);
+				   int max = Math.min(start+maxresults, docs.totalHits);
 				 int totaldocs= docs.totalHits;
 				 List<Document> documents= new ArrayList<Document>();
 						for(int i = start; i < max; i++) 

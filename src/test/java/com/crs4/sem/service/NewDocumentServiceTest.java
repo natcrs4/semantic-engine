@@ -232,5 +232,16 @@ public void testRebuildIndex() throws InterruptedException {
 	assertTrue(destination.size()==destination.indexsize());
 }
 
-
+@Test
+public void testUpdateDocument() {
+	File cfgFile = new File("src/test/resources/hibernate.lucene.cfg2.xml");
+	Configuration configure = HibernateConfigurationFactory.configureDocumentService(cfgFile);
+	NewDocumentService destination = new NewDocumentService(configure);
+	NewDocument doc = destination.getById("2d7060eb02ec1c1b6a7312b4e4f4df069d07e027",true);
+	doc.setTrainable(true);
+	destination.updateDocument(doc);
+     doc = destination.getById("2d7060eb02ec1c1b6a7312b4e4f4df069d07e027",true);
+	
+	assertTrue(doc.getTrainable());
+}
 }

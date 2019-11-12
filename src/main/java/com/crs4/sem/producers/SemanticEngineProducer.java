@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -28,15 +30,25 @@ import com.sun.syndication.io.FeedException;
 import com.sun.syndication.io.SyndFeedInput;
 import com.sun.syndication.io.XmlReader;
 
+import lombok.Data;
+
+
+@Data
 public class SemanticEngineProducer {
 	
 	 @Inject
 	  private SemEngineConfig config;
 	 @Inject
 	  private NERService nerservice;
+	 
+	 
+
 	
 	 @Produces
+	 @ApplicationScoped
+	  @DocumentProducerType(ServiceType.SEMANTICS)
 	 public SemanticEngineService produces() throws IOException {
+		
 		 String path=config.getHibernateSemDocuments();
 		    if (path.startsWith("classpath:")) {
 		    	path=path.replace("classpath:", config.classpath()+"/applications/"+config.applicationame()+"/WEB-INF/classes/");
@@ -53,39 +65,11 @@ public class SemanticEngineProducer {
 		.setConfig(GraphDatabaseSettings.read_only,"false").newGraphDatabase();
 		
 		SemanticEngineService docservice= new SemanticEngineService(new NodeService(graph1), nerservice, ndocservice);
-		String taxo[]={"esteri","economia","societa/mare","tecnologia"};
-		long id=0L;
-		for (String cat:taxo){
-			try {
-		URL feedSource = new URL("http://feed.lastampa.it/"+cat+".rss");
-		SyndFeedInput input = new SyndFeedInput();
-		SyndFeed feed;
-	
-			feed = input.build(new XmlReader(feedSource));
-			String desc=feed.getDescription();
-			List<SyndEntry> entries = (List<SyndEntry>)feed.getEntries();
-		    for (SyndEntry entry: entries){
-		    	  System.out.println("Title: " + entry.getTitle());
-	        System.out.println("Link: " + entry.getLink());
-	        System.out.println("Author: " + entry.getAuthor());
-	        System.out.println("Publish Date: " + entry.getPublishedDate());
-	        System.out.println("Description: " + entry.getDescription().getValue());
-	        id++;
-	       NewDocument document=NewDocument.builder().internal_id(DigestUtils.md5Hex(entry.getLink())).id(id).authors(entry.getAuthor()).description(entry.getDescription().getValue()).url(entry.getLink()).title(entry.getTitle()).publishDate(entry.getPublishedDate()).build();
-	       docservice.addDocument(document);
-		    } }catch (IllegalArgumentException | FeedException | IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
 		
-	   
-	}
-			
-			docservice.pageRank();
-			return docservice;
+	    return docservice;
 	 }
 
+	 public void close(@Disposes  @DocumentProducerType(ServiceType.SEMANTICS) SemanticEngineService service) {
+			service.shutdown();
+		}
 }

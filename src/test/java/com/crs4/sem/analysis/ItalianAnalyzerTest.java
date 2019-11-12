@@ -14,6 +14,8 @@ import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.analysis.util.WordlistLoader;
 import org.junit.Test;
 
+import com.mfl.sem.analysis.AuxAttribute;
+
 // TODO: Auto-generated Javadoc
 /**
  * Esempio di utilizzo di un analizzatore di Lucene.
@@ -37,7 +39,7 @@ public class ItalianAnalyzerTest {
 		stream.reset();
 		while (stream.incrementToken()) {
 			System.out.println(stream.getAttribute(CharTermAttribute.class).toString());
-			System.out.println(stream.getAttribute(TypeAttribute.class).type());
+			System.out.println(stream.getAttribute(AuxAttribute.class).type());
 		}
 		analyzer.close();
 	}

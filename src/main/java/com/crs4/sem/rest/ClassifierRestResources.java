@@ -11,6 +11,7 @@ import javax.ejb.Stateless;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -124,7 +125,7 @@ public List<ScoredItem> classifyDoc( NewDocument doc) throws IOException, Interr
 @Produces(MediaType.TEXT_PLAIN)
 @Consumes(MediaType.APPLICATION_JSON)
 @ApiOperation(value = "classify document", notes = "Train classifier")
-public Response train(@PathParam("name") String stringroot) throws IOException, InterruptedException, CategoryNotFoundInTaxonomyException, InstantiationException, IllegalAccessException, ClassifierException {
+public Response train(@PathParam("name") String stringroot,@QueryParam("documents") @DefaultValue("false") boolean withdocs,@QueryParam("keywords") @DefaultValue("false") boolean keys) throws IOException, InterruptedException, CategoryNotFoundInTaxonomyException, InstantiationException, IllegalAccessException, ClassifierException {
 
 	log.info("train classifier " );
 	//aux=resourceContext.getResource(TextClassifier.class);
@@ -136,11 +137,14 @@ public Response train(@PathParam("name") String stringroot) throws IOException, 
 	//SVMClassifier svm = new SVMClassifier();
 	TextClassifier textClassifier = new TextClassifierImpl(analyzer,hclassifier,categoryDictionary);
 	List<Documentable> docs= new ArrayList<Documentable>();
-	List<Documentable> docs_ = documentService.getTrainable();
+	List<Documentable> docs_=new ArrayList<Documentable>();
+	if(withdocs)
+		docs_ = documentService.getTrainable();
+		
 	String[] categories = taxonomyService.branchLabels(root, false);
 	List<Documentable> kdocs = new ArrayList<Documentable>();
 	
-	
+	if(keys) {
 	for (String category : categories) {
 		String[] keywords;
 		keywords = taxonomyService.getKetwords("root", category);
@@ -154,7 +158,9 @@ public Response train(@PathParam("name") String stringroot) throws IOException, 
 		}
 	}
 	docs.addAll(kdocs);
-	if(!docs_.isEmpty())docs.addAll(docs_);
+	}
+	if(!docs_.isEmpty())
+		docs.addAll(docs_);
 	Documents kdocsreader = new DocumentReader(docs);
 	TextClassifierImpl aux = (TextClassifierImpl) textClassifier;
 	aux.setCategoryDictionary(new CategoryDictionary());

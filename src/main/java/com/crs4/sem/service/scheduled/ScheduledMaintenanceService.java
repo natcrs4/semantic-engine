@@ -13,6 +13,7 @@ import javax.inject.Inject;
 import com.crs4.sem.model.NewDocument;
 import com.crs4.sem.producers.DocumentProducerType;
 import com.crs4.sem.producers.ServiceType;
+import com.crs4.sem.service.AuthorService;
 import com.crs4.sem.service.NewDocumentService;
 
 import lombok.Data;
@@ -38,6 +39,12 @@ public class ScheduledMaintenanceService {
 	private Logger log;
 	
 	
+
+	@Inject
+	@DocumentProducerType(ServiceType.AUTHORS)
+    private AuthorService authorService;
+
+	
 	//@Schedule( hour="*",minute="*/5", persistent=false)
 	public void cleansReplicas() {
 		log.info("starting clean replica process");
@@ -47,6 +54,13 @@ public class ScheduledMaintenanceService {
 		this.documentService.deleteAll(new ArrayList<NewDocument>(docu));
 		start=start+maxresults;
 		
+	}
+	
+	@Schedule(dayOfWeek="sun", hour="0",minute="0", persistent=false)
+	public void buildAuthor() {
+		log.info("starting build authors process");
+		this.documentService.buildAuthors(authorService);
+		log.info("end build authors process");
 	}
 
 }

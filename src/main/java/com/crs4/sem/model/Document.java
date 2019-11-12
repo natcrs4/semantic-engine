@@ -150,11 +150,12 @@ public class Document implements Documentable{
     public Boolean trainable=false;
 
 
-	@Override
-	public String text() {
-		return this.getTitle()+this.getDescription();
+    @Override
+    public String text() {
+		String aux="";
+		aux= (this.getTitle()!=null?this.getTitle():"")+" "+(this.getDescription()!=null?this.getDescription():"");
+		return aux;
 	}
-
 //    
     @Column(columnDefinition="text")
     @IndexedEmbedded

@@ -17,6 +17,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import com.crs4.sem.model.Document;
 import com.crs4.sem.model.Documentable;
@@ -31,14 +32,17 @@ import com.crs4.sem.service.SemanticEngineService;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import lombok.Data;
 
 @Stateless
 //@ApplicationScoped
 @Path("/semantics")
 @Api(value = "Semantics", description = "Resources api for semantic processing of documents")
+@Data
 public class SemanticEngineRestResources {
 	
 	@Inject
+	@DocumentProducerType(ServiceType.SEMANTICS)
 	private SemanticEngineService documentService;
 
 	@Inject
@@ -85,4 +89,13 @@ public class SemanticEngineRestResources {
 		return docs;
 	}
 
+	
+	@GET
+	@Path("/buildgraph")
+	@ApiOperation(value = "build entity graph",
+    notes = "Build graph using entities")
+	public Response buildGraph() {
+		this.documentService.buildGraph();
+		return Response.ok().build();
+	}
 }

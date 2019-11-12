@@ -123,10 +123,47 @@ public class NERService {
 		}
 		return tagged;
 	}
-
+    
+	public List<Term> listOfPerson(List<Term> taggedterms){
+		List<Term> tagged=new ArrayList<Term>();
+		List<Term> terms=new ArrayList<Term>();
+		CompoundTaggedTerm compound=null;
+		for(Term x:taggedterms){
+			if(x.tag().startsWith("B-PER")) {
+			
+				terms= new ArrayList<Term>();
+				
+				compound= new CompoundTaggedTerm(terms,new Tag(x.tag().replaceAll("B-", "")));
+				tagged.add(compound);
+				SimpleTerm simple = new SimpleTerm(x.content());
+				terms.add(simple);
+				
+			}
+			else
+			if(x.tag().startsWith("I-PER")) {
+				SimpleTerm simple = new SimpleTerm(x.content());
+				if(terms.size()==0){
+					compound= new CompoundTaggedTerm(terms,new Tag(x.tag().replaceAll("B-", "")));
+					tagged.add(compound);
+				}
+				terms.add(simple);
+				
+			}
+			else
+				 terms=new ArrayList<Term>();
+			
+		}
+		return tagged;
+	}
 	public List<Term> list(String text) throws IOException {
 		List<Term> list = this.tagSentences(text);
 		List<Term> ent = this.listOfEntities(list);
+		return ent;
+	}
+	
+	public List<Term> listOfPerson(String text) throws IOException {
+		List<Term> list = this.tagSentences(text);
+		List<Term> ent = this.listOfPerson(list);
 		return ent;
 	}
 }

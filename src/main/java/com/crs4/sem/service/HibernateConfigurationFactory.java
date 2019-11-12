@@ -19,9 +19,9 @@ public class HibernateConfigurationFactory {
 		Configuration configuration = new Configuration();
 		//configuration = configuration.addAnnotatedClass(Document.class);
 		//configuration = configuration.addAnnotatedClass(Keyword.class);
-		CacheManager.getInstance().shutdown();
+		//CacheManager.getInstance().shutdown();
 		configuration= configuration.configure(cfgFile);
-		configuration.setSharedCacheMode(SharedCacheMode.ALL);
+		//configuration.setSharedCacheMode(SharedCacheMode.ALL);
 		return configuration;
 		
 	}

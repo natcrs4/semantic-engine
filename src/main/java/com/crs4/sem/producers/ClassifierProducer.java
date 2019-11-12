@@ -68,7 +68,7 @@ public class ClassifierProducer  {
 			//SVMClassifier svm = new SVMClassifier();
 		TextClassifier textClassifier = new TextClassifierImpl(analyzer,hclassifier,categoryDictionary);
 		List<Documentable> docs= new ArrayList<Documentable>();
-		//List<Documentable> docs_ = docservice.getTrainable();
+		List<Documentable> docs_ = docservice.getTrainable();
 		String[] categories = taxoservice.branchLabels(root, false);
 		List<Documentable> kdocs = new ArrayList<Documentable>();
 		
@@ -85,8 +85,9 @@ public class ClassifierProducer  {
                 kdocs.add(doc);
 			}
 		}
-		docs.addAll(kdocs);
-		//if(!docs_.isEmpty())docs.addAll(docs_);
+		//docs.addAll(kdocs);
+		
+		if(!docs_.isEmpty())docs.addAll(docs_);
 		Documents kdocsreader = new DocumentReader(docs);
 		textClassifier.train(kdocsreader);
 		this.setTextClassifier(textClassifier);

@@ -26,7 +26,7 @@ public class DocumentProducer {
 	  
 	  
 	  @Produces
-	  //@ApplicationScoped
+	  @ApplicationScoped
 	  @DocumentProducerType(ServiceType.DOCUMENT)
 	  public NewDocumentService producer() {
 		

@@ -36,7 +36,7 @@ public class ShadoServiceProducer {
 		    }
 		   File cfgFile=  new File(path);
 		    Configuration configure = HibernateConfigurationFactory.configureShadoService(cfgFile);
-			ShadoService shadoService= new ShadoService(configure);
+			ShadoService shadoService=  ShadoService.newInstance(configure);
 
 		    
 		    return shadoService;

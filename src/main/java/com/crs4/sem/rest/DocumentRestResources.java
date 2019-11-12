@@ -52,6 +52,7 @@ import com.crs4.sem.producers.Analyzers;
 import com.crs4.sem.producers.DocumentProducerType;
 import com.crs4.sem.producers.ServiceType;
 import com.crs4.sem.rest.exceptions.ForbiddenStatusException;
+import com.crs4.sem.rest.exceptions.InternalServerException;
 import com.crs4.sem.rest.exceptions.MalformedQueryException;
 import com.crs4.sem.service.DocumentService;
 import com.crs4.sem.service.LuceneService;
@@ -69,7 +70,7 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
-//@Stateless
+@Stateless
 //@ApplicationScoped
 @Path("/documents")
 @Api(value = "Documents", description = "Documents")
@@ -107,6 +108,9 @@ public class DocumentRestResources {
 	
 	@Inject
 	private StatusSingleton status;
+	
+	public static double th0=0.9f;
+	public static float alpha=1f;
 
 	@GET
 	@Path("/searchText")
@@ -118,9 +122,10 @@ public class DocumentRestResources {
 			@QueryParam("entities") @DefaultValue("false") Boolean entities,
 			@QueryParam("start") @DefaultValue("0") Integer start,
 			@QueryParam("maxresults") @DefaultValue("100") Integer maxresults, @QueryParam("from") String from,
-			@QueryParam("to") String to) throws Exception {
+			@QueryParam("to") String to,
+			@QueryParam("threshold") @DefaultValue("2.9") double threshold) throws Exception {
 
-		log.info("classify text" + text);
+		log.info("search text" + text);
 		Date from_date = null;
 		Date to_date = null;
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
@@ -129,20 +134,21 @@ public class DocumentRestResources {
 		if (to != null)
 			to_date = df.parse(to);
 		NewSearchResult searchResult = this.luceneService.parseSearch(text, "", from_date, to_date, start, maxresults, false, analyzer, false);
-
+		List<NewDocument> duplicated = documentService.removeDuplicated(searchResult.getDocuments(),threshold);
+		searchResult.setDuplicated(duplicated);
 		return searchResult;
 	}
 
 	@GET
 	@Path("/search")
 	@Produces(MediaType.APPLICATION_JSON)
-	@ApiOperation(value = "Advanced search text", notes = "Advanced method for searching text ", response = SearchResult.class)
-	@ApiResponses(value = { @ApiResponse(code = 200, message = "Got it"),
-			@ApiResponse(code = 500, message = "Server is down!") })
+	@ApiOperation(value = "Advanced search text", notes = "Advanced method for searching text ")
+	
 public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			@QueryParam("query") @DefaultValue("") String query, @QueryParam("start") @DefaultValue("0") Integer start,
 			@QueryParam("maxresults") @DefaultValue("10") Integer maxresults, @QueryParam("from") String from,
-			@QueryParam("to") String to, @QueryParam("score") @DefaultValue("false") boolean score,@QueryParam("links") @DefaultValue("true") Boolean links) throws Exception {
+			@QueryParam("to") String to, @QueryParam("score") @DefaultValue("false") boolean score,@QueryParam("links") @DefaultValue("true") Boolean links,
+			@QueryParam("threshold") @DefaultValue("2.9") double threshold) throws Exception {
 		 
 		log.info("search text" + text + " with query" + query);
 		Date from_date = null;
@@ -154,7 +160,8 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			to_date = df.parse(to);
 		NewSearchResult searchResult = this.documentService.parseSearch(text, query, from_date, to_date, start, maxresults,
 				score, analyzer,links);
-      
+		List<NewDocument> duplicated = documentService.removeDuplicated(searchResult.getDocuments(),threshold);
+		searchResult.setDuplicated(duplicated);
 		return searchResult;
 	}
 
@@ -162,9 +169,8 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 	@Path("/duplicated")
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "Search duplicated", notes = "rest for searching duplicated"
-			, response = NewDocument.class)
-	@ApiResponses(value = { @ApiResponse(code = 200, message = "Got it"),
-			@ApiResponse(code = 500, message = "Server is down!") })
+			)
+
 	public List<NewDocument> duplicated(
 			@QueryParam("tilte") @DefaultValue("") String title,
 			@QueryParam("description") @DefaultValue("") String description,
@@ -178,9 +184,11 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 	@Path("/advancedsearch")
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "Advanced search text", notes = "Advanced method for searching text."
-			+ " Setting text for free semantic search. Setting field to make constraints. Date format yyyy-MM-dd. Parameter score to force ranking with custom score.", response = NewSearchResult.class)
-	@ApiResponses(value = { @ApiResponse(code = 200, message = "Got it"), @ApiResponse(code = 200, message="",response=NewSearchResult.class),
-			@ApiResponse(code = 500, message = "Server is down!") })
+			+ " Setting text for free semantic search. Setting field to make constraints. "
+			+ "Date format yyyy-MM-dd. Parameter score to force ranking with custom score."
+			+ " Semantics parameter activate query espansion, "
+			+ "the text is classificated by default taxonomy and query is expanded using this rule: query +cat*p(q/cat)^alpha ")
+
 	public NewSearchResult advancedsearch(@QueryParam("text") @DefaultValue("") String text,
 			@QueryParam("query") @DefaultValue("") String query_,
 			@QueryParam("authors") @DefaultValue("") String authors,
@@ -196,7 +204,10 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			@QueryParam("detect") @DefaultValue("false") boolean detect,
 			@QueryParam("resolution") @DefaultValue("DAY") Resolution resolution,
 			@QueryParam("links") @DefaultValue("false") boolean links,
-			@QueryParam("threshold") @DefaultValue("2.9") double threshold) throws Exception {
+			@QueryParam("threshold") @DefaultValue("2.9") double threshold,
+			@QueryParam("semantics") @DefaultValue("false") boolean semantics,
+			@QueryParam("classify") @DefaultValue("false") boolean classify
+			) throws Exception {
 
 		
 		Date from_date = null;
@@ -217,6 +228,12 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 		if (!categories.trim().isEmpty())
 			query += " +(categories:" + categories + ")";
 		log.info("search text" + text +(query==null?"":" query "+ query)+(from==null?"":" from "+from)+ (to==null?"":" to "+to)+" start "+ start+" maxresults "+ maxresults + ""+ ((histograms)? "with statistics samplesize:"+samplesize :""));
+		if(semantics) {
+			List<ScoredItem> catlist = this.textClassifier.classify(NewDocument.builder().title(text).build());
+		    if(!catlist.isEmpty()&&catlist.get(0).getScore()>th0)
+		    	log.info(" categories "+ catlist.get(0));
+		    	query+= "  OR (categories: "+catlist.get(0).getLabel()+ ")";
+		}
 		NewSearchResult searchResult = this.luceneService.parseSearch(text, query, from_date, to_date, start, maxresults,
 				score, analyzer,links);
 		List<NewDocument> duplicated = documentService.removeDuplicated(searchResult.getDocuments(),threshold);
@@ -233,6 +250,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 				searchResult = this.histograms(searchResult, samplesize, resolution);
 			}
 			else {
+				
 				NewSearchResult temp = this.luceneService.parseSearch(text, query, from_date, to_date, 0, samplesize,
 						score, analyzer,links);
 				 duplicated = documentService.removeDuplicated(temp.getDocuments(),threshold);
@@ -257,6 +275,8 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 		}
 
 		searchResult= this.addMetadataFromShado(shadoService,searchResult);
+		if(classify)
+			this.classifyDocuments(searchResult.getDocuments(), textClassifier);
 		return searchResult;
 	}
 
@@ -301,29 +321,34 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 		return metadatas;
 	}
 
-	private void classifyDocuments(List<NewDocument> documents, TextClassifier textClassifier) {
+	public void classifyDocuments(List<NewDocument> documents, TextClassifier textClassifier) {
 		for (NewDocument doc : documents) {
 			List<ScoredItem> result;
 			try {
-				result = textClassifier.classify(doc);
-
-				String categories[] = null;
-				if (result.size() >= 2) {
-					categories = new String[2];
-					categories[0] = result.get(0).getLabel();
-					categories[1] = result.get(1).getLabel();
-				} else if (result.size() == 1) {
-					categories = new String[1];
-					categories[0] = result.get(0).getLabel();
-				}
-
-				if (categories != null)
-					doc.setCategories(categories);
+				classifyDocument(textClassifier, doc);
 			} catch (IOException e) {
 				log.info(""+e);
 			}
 		}
 
+	}
+
+	public void classifyDocument(TextClassifier textClassifier, NewDocument doc) throws IOException {
+		List<ScoredItem> result;
+		result = textClassifier.classify(doc);
+
+		String categories[] = null;
+		if (result.size() >= 2) {
+			categories = new String[2];
+			categories[0] = result.get(0).getLabel();
+			categories[1] = result.get(1).getLabel();
+		} else if (result.size() == 1) {
+			categories = new String[1];
+			categories[0] = result.get(0).getLabel();
+		}
+
+		if (categories != null)
+			doc.setCategories(categories);
 	}
 
 	private void detectKeywords(List<NewDocument> documents, Set<String> set, Analyzer analyzer) {
@@ -469,9 +494,14 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 	@Produces(MediaType.TEXT_PLAIN)
 	@ApiOperation(value = "Upload documents", notes = "Upload stream of documents")
 public Response uploadDocuments(@FormDataParam("file") InputStream inputStream,
-			@FormDataParam("file") FormDataContentDisposition fileDetail) throws Exception {
-		log.info("added " + fileDetail.getFileName());
-		Integer num = documentService.addDocuments(inputStream);
+			@FormDataParam("file") FormDataContentDisposition fileDetail)  {
+		log.info("adding " + fileDetail.getFileName()+ " documents");
+		Integer num;
+		try {
+			num = documentService.addDocuments(inputStream);
+		} catch (Exception e) {
+			throw new InternalServerException(e+"");
+		}
 		return Response.ok("uploaded "+num+" documents" ).build();
 
 	}
@@ -480,8 +510,10 @@ public Response uploadDocuments(@FormDataParam("file") InputStream inputStream,
 	@Path("/internal/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "get document", notes = "get document by its internal id")
-	public NewDocument getById(@PathParam("id") String id,@QueryParam("links") @DefaultValue("true") Boolean links) {
+	public NewDocument getById(@PathParam("id") String id,@QueryParam("links") @DefaultValue("true") Boolean links,@QueryParam("classify") @DefaultValue("false") Boolean classify) throws IOException {
 		NewDocument doc = this.documentService.getById(id,links);
+		if(classify)
+			this.classifyDocument( textClassifier,doc);
 		log.info("get document " + id);
 
 		return doc;
@@ -492,12 +524,13 @@ public Response uploadDocuments(@FormDataParam("file") InputStream inputStream,
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "get document", notes = "get document by its id")
 	public NewDocument get(@PathParam("id") Long id,@QueryParam("shado") @DefaultValue("true") Boolean shado,
-			@QueryParam("links") @DefaultValue("true") Boolean links) {
+			@QueryParam("links") @DefaultValue("true") Boolean links, @QueryParam("classify") @DefaultValue("false") Boolean classify) throws IOException {
 		NewDocument doc = this.documentService.getNaturald( id,links);
 		if(shado)
 			this.addMetadataFromShado(shadoService, doc);
+		if(classify)
+			this.classifyDocument( textClassifier,doc);
 		log.info("get document " + id);
-
 		return doc;
 	}
 

@@ -369,6 +369,31 @@ public class NewDocumentService extends HibernateService{
 
 		
 	}
+	public void updateDocument(NewDocument doc) {
+		HashMap<String, NewMetadata> map = new HashMap<String,NewMetadata>();
+		HashMap<String, Page> pages = new HashMap<String,Page>();
+		this.checkNewDocument(doc, map, pages);
+		Session session = factory.openSession();
+		Transaction tx = session.beginTransaction();
+		try {
+			
+                 session.update(doc);
+			
+
+			tx.commit();
+		} catch (RuntimeException e){
+			if (tx != null)
+				tx.rollback();
+			logger.error(""+e+ " "+ doc);
+			throw e; // or display error message
+		}
+	
+		finally {
+			session.close();
+		}
+
+		
+	}
 	public NewSearchResult dump(Integer start, Integer maxresults, Date from, Date to, Boolean links) {
 		Session session = factory.openSession();
 		List<NewDocument> result = new ArrayList<NewDocument>();
@@ -737,7 +762,7 @@ public class NewDocumentService extends HibernateService{
 		});
 		this.assignIdentifiers(documents);
 		this.checkDocuments(documents);
-		documents=this.cleanReplicas(documents);
+		//documents=this.cleanReplicas(documents);
 		try {
 			
 		
