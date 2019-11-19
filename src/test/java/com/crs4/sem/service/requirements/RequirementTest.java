@@ -85,7 +85,7 @@ public class RequirementTest {
 				hclassifier = HClassifierBuilder.builder().species(SVMClassifier.class).root(root)
 						.taxonomyService(taxoservice).categoryBuilder(categoryDictionary).build();
 			    SVMClassifier svm = new SVMClassifier();
-				hclassifier.setLevel1(true);
+				hclassifier.setLevel1(false);
 			TextClassifierImpl textClassifier = new TextClassifierImpl(analyzer,svm,categoryDictionary);
 			List<Documentable> docs= new ArrayList<Documentable>();
 			List<Documentable> docs_ = docservice.getTrainable();
@@ -105,7 +105,7 @@ public class RequirementTest {
 	                kdocs.add(doc);
 				}
 			}
-			//docs.addAll(kdocs);
+			docs.addAll(kdocs);
 			if(!docs_.isEmpty())docs.addAll(docs_);
 			Collections.shuffle(docs);
 			this.parentize(docs, taxoservice);
@@ -118,7 +118,7 @@ public class RequirementTest {
 				 
 				  TextPrecision precision =  TextPrecision.builder().documents(documents).textClassifier(textClassifier).testset(testset).build();
 				  precision.setTrainset(documents);
-				  //precision.split(0.8);
+				  precision.split(0.8);
 				  double result=precision.calculate();
 				  assertEquals(result,0.891,0.01);
 			  }

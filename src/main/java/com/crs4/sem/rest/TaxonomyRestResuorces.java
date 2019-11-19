@@ -3,6 +3,8 @@ package com.crs4.sem.rest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -60,7 +62,7 @@ public class TaxonomyRestResuorces {
 
 
 	@POST
-	@Path("{name}/category/add/{parent}")
+	@Path("/{name}/category/add/{parent}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "Add partent to category", notes = "add category to partent")
@@ -80,7 +82,7 @@ public class TaxonomyRestResuorces {
 	}
 
 	@DELETE
-	@Path("{name}/category/{id}")
+	@Path("/{name}/category/{id}")
 	// @Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "delete category from parent", notes = "delete category from partent")
@@ -90,7 +92,7 @@ public class TaxonomyRestResuorces {
 	}
 
 	@GET
-	@Path("{name}/category/branch/{id}")
+	@Path("/{name}/category/branch/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	// @Consumes(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "Get a brach starting from a category ", notes = "Return a branch from a given category ")
@@ -100,7 +102,7 @@ public class TaxonomyRestResuorces {
 	}
 
 	@DELETE
-	@Path("{name}/keyword/{id}")
+	@Path("/{name}/keyword/{id}")
 	// @Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "Delete keyword from category", notes = "Delete a keyword from category ")
@@ -110,7 +112,7 @@ public class TaxonomyRestResuorces {
 	}
 
 	@PUT
-	@Path("{name}/keyword/{id}")
+	@Path("/{name}/keyword/{id}")
 	// @Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "put keyword to category", notes = "Put a keyword to category id")
@@ -171,21 +173,50 @@ public class TaxonomyRestResuorces {
 	}
 	
 	@DELETE
-	@Path("/{name}/document/{id}")
+	@Path("/{name}/document")
     @Produces(MediaType.TEXT_PLAIN)
 	@Consumes(MediaType.TEXT_PLAIN)
 	@ApiOperation(value = "delete document", notes = "Delete document from taxonomy")
-	public Response deleteDocument(@ApiParam(value = "taxonomy name" ) @PathParam("name")  @DefaultValue("root")String name,@ApiParam(value = "document id" )@PathParam("id") String id) {
-		log.info("delete document "+id+" from taxonomy "+ name);
-		NewDocument doc = this.documentService.getById(id, true);
+	public Response deleteDocument(@ApiParam(value = "taxonomy name" ) @PathParam("name")  @DefaultValue("root")String name,String document_id) {
+		log.info("delete document "+document_id+" from taxonomy "+ name);
+		NewDocument doc = this.documentService.getById(document_id, true);
 	
 		doc.setCategories(null);
 		doc.setTrainable(false);
 		this.documentService.saveOrUpdateDocument(doc);
-		this.taxonomyService.deleteDocument(id);
+		this.taxonomyService.deleteDocument(document_id);
 		return Response.ok("deleted").build();
 	}
 	
+	@DELETE
+	@Path("/{name}/document/{id}")
+    @Produces(MediaType.TEXT_PLAIN)
+	@Consumes(MediaType.TEXT_PLAIN)
+	@ApiOperation(value = "delete document", notes = "Delete document from category")
+	public Response deleteDocumentFromCategory(@ApiParam(value = "taxonomy name" ) @PathParam("name")  @DefaultValue("root")String name,@ApiParam(value = "category id" ) @PathParam("id") String id, String document_id) {
+		log.info("delete document "+document_id+" from taxonomy "+ name + "category"+id);
+		NewDocument doc = this.documentService.getById(document_id, true);	
+		String [] categories=doc.getCategories();
+	    categories=this.removeCategory(categories,id);
+	    doc.setCategories(categories);
+		if(categories.length==0) 
+			this.taxonomyService.deleteDocument(document_id);
+		
+		else 
+			this.taxonomyService.deleteDocument(id,document_id);
+		this.documentService.saveOrUpdateDocument(doc);
+		
+		return Response.ok("deleted").build();
+	}
+	
+	private String[] removeCategory(String categories[], String id) {
+		List<String> strings= new ArrayList<String>();
+		for(String cat:categories)
+			if(!cat.equals(id))
+				strings.add(cat);
+		return strings.toArray(new String[strings.size()]);
+	}
+
 	@DELETE
 	@Path("/{name}/documents")
 	@Consumes(MediaType.TEXT_PLAIN)
@@ -254,13 +285,13 @@ public class TaxonomyRestResuorces {
 	
 	@DELETE
 	@Path("/{name}")
-	// @Produces(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.TEXT_PLAIN)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@ApiOperation(value = "delete document", notes = "Delete document from category id")
 	public Response deleteTaxonomy(@PathParam("name") @DefaultValue("root") String name) throws com.crs4.sem.neo4j.exceptions.TaxonomyNotFoundException {
 		log.info("delete taxonomy:"+name);
 		this.getTaxonomyService().deleteTaxonomy( name);
-		return Response.ok().build();
+		return Response.ok("deleted taxonomy "+name).build();
 	}
 	@POST
 	@Path("/triplet/upload")

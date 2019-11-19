@@ -9,6 +9,9 @@ loadAPIData("rest/taxonomy/root/category/branch/root",callbackTaxonomy);
 var parents;
 var start=0;
 var  maxresults=10;
+var oldvalues=new Array();
+ oldvalues[0]= new Map();
+ oldvalues[1]=new Map();
 
 // Load API data
 function loadAPIData(url, callback) {
@@ -46,21 +49,38 @@ function showResults(data) {
 		
 		var $item = $('<a href="' + link +"?classify=true"+ '" target="_blank" class="result"><h3>' + title + '</h3>' + '<p>' + 
 				snippet + '&hellip;</p><p>'+pubdate+'</p></a>').hide().fadeIn();
-		
+		for(var k=0;k<categories.length;k++)
+			oldvalues[k].set(id,categories[k]);
+	
 		$element.append($item);
 		$element.append($(menu));
-		$('#'+id).on('change',function(){
+		$('#'+id+'_0').on('change',function(){
 			var url='rest/taxonomy/root/document';
-			putDocumentToCategory(url,this.value,this.id);	
+			var auxid=this.id+'';
+			auxid=auxid.replace('_0','');
+			if(this.value=='------')
+				deleteDocumentFromCategory(url,oldvalues[0].get(auxid),auxid);	
+			else {
+				putDocumentToCategory(url,this.value,auxid);
+				oldvalues[0].set(auxid,this.value);
+			}
+		});
+		$('#'+id+'_1').on('change',function(){
+			var url='rest/taxonomy/root/document';
+			var auxid=this.id+'';
+			auxid=auxid.replace('_1','');
+			if(this.value=='------')
+				deleteDocumentFromCategory(url,oldvalues[1].get(auxid),auxid);	
+			else {
+				putDocumentToCategory(url,this.value,auxid);
+				oldvalues[1].set(auxid,this.value);
+			}	
 		});
 	}
 }
 
 function putDocumentToCategory(url,category_id,document_id){
 	
-
-	
-    if(category_id=='------') return;
 	var xhr = new XMLHttpRequest();
 	xhr.open("PUT", url+"/"+category_id, true);
 	xhr.setRequestHeader('Content-type','text/plain; charset=utf-8');
@@ -73,7 +93,25 @@ function putDocumentToCategory(url,category_id,document_id){
 		}
 	}
 	xhr.send(document_id);
+	
 }
+
+
+function deleteDocumentFromCategory(url,category_id,document_id){
+	var xhr = new XMLHttpRequest();
+	xhr.open("DELETE", url+"/"+category_id, true);
+	xhr.setRequestHeader('Content-type','text/plain; charset=utf-8');
+	xhr.onload = function () {
+		var text = xhr.responseText;
+		if (xhr.readyState == 4 && xhr.status == "200") {
+			console.table(text);
+		} else {
+			console.error(text);
+		}
+	}
+	xhr.send(document_id);
+}
+
 function callbackTaxonomy(data){
 	var parsed = JSON.parse(data);
 	
@@ -108,7 +146,7 @@ function createSelectionMenu(taxonomy, selected,id){
 	result=result+'<p>';
 	
 	
-	var aux='<select id="'+id+'">';	
+	var aux='<select id="'+id+'_'+k+'">';	
 	for( var i=0;i<branchlist.length;i++)
 		{
 		 
