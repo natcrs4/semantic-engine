@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- gotcha - need the below declaration or may blow up at runtime -->
+<!DOCTYPE hibernate-configuration PUBLIC
+      "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+      "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd" >
+<hibernate-configuration>
+	<session-factory>
+
+	<property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+        <property name="hibernate.connection.url">jdbc:mysql://nat02.crs4.it:3306/shado1</property>
+		   <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
+		   <property name="connection.username">sa</property>
+        <property name="connection.password">pass</property>
+
+		<property name="connection.pool_size">10</property>
+        <property name="hbm2ddl.auto">update</property>
+		<property name="show_sql">false</property>
+		<property name="format_sql">false</property>
+
+		<!-- Enable Hibernate's automatic session context management -->
+		<property name="current_session_context_class">thread</property>
+
+		<!-- Disable the second-level cache -->
+		<property name="cache.provider_class">org.hibernate.cache.internal.NoCacheProvider
+		</property>
+</session-factory>
+</hibernate-configuration>
