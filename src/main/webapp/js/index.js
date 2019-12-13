@@ -9,9 +9,8 @@ loadAPIData("rest/taxonomy/root/category/branch/root",callbackTaxonomy);
 var parents;
 var start=0;
 var  maxresults=10;
-var oldvalues=new Array();
- oldvalues[0]= new Map();
- oldvalues[1]=new Map();
+var values= new Map();
+// oldvalues[1]=new Map();
 
 // Load API data
 function loadAPIData(url, callback) {
@@ -43,46 +42,71 @@ function showResults(data) {
 		var id=results[i].internal_id;
 		var categories=results[i].categories;
 		var snippet = results[i].description;
+		var trainable=results[i].trainable;
 		var pubdate=results[i].publishDate;
 		var link = getResultLink(id);
+		if (!(categories===undefined)&&(categories.length==1)) 
+		{categories[1]="------";
+		}
+		if (!(categories===undefined)&&(categories.length==0))
+		{
+		categories[0]="------";
+		categories[1]="------";
+		}
+		if (categories===undefined)
+		{ categories= new Array();
+		categories[0]="------";
+		categories[1]="------";
+		}
 		var menu=createSelectionMenu(taxonomy,categories,id)
 		
-		var $item = $('<a href="' + link +"?classify=true"+ '" target="_blank" class="result"><h3>' + title + '</h3>' + '<p>' + 
-				snippet + '&hellip;</p><p>'+pubdate+'</p></a>').hide().fadeIn();
-		for(var k=0;k<categories.length;k++)
-			oldvalues[k].set(id,categories[k]);
+		var $item = $('<div > <a href="' + link +"?classify=true"+ '" target="_blank" class="result"><h3>' + title + '</h3>' + '<p>' + 
+				snippet + '&hellip;</p><p>'+pubdate+'</p></a></div>').hide().fadeIn();
+			values.set(id,categories);
 	
 		$element.append($item);
-		$element.append($(menu));
+		$item.append($(menu));
+		if(trainable){
+			$item.children("a").toggleClass("trainable");
+		}
 		$('#'+id+'_0').on('change',function(){
 			var url='rest/taxonomy/root/document';
 			var auxid=this.id+'';
 			auxid=auxid.replace('_0','');
-			if(this.value=='------')
-				deleteDocumentFromCategory(url,oldvalues[0].get(auxid),auxid);	
-			else {
-				putDocumentToCategory(url,this.value,auxid);
-				oldvalues[0].set(auxid,this.value);
-			}
+			//if(this.value=='------')
+			//	deleteDocumentFromCategory(url,oldvalues[0].get(auxid),auxid);	
+			//else {
+			 var cats=values.get(auxid);
+			 cats[0]=this.value;
+			 values.set(auxid,cats);
+			// putCategoriesToDocument(url,auxid,cats);
+		      
+			//}
 		});
 		$('#'+id+'_1').on('change',function(){
 			var url='rest/taxonomy/root/document';
-			var auxid=this.id+'';
+			var auxid=this.id;
 			auxid=auxid.replace('_1','');
-			if(this.value=='------')
-				deleteDocumentFromCategory(url,oldvalues[1].get(auxid),auxid);	
-			else {
-				putDocumentToCategory(url,this.value,auxid);
-				oldvalues[1].set(auxid,this.value);
-			}	
+			var cats=values.get(auxid);
+			 cats[1]=this.value;
+			 values.set(auxid,cats);
+			 //putCategoriesToDocument(url,auxid,cats);
+			
+		    
 		});
+		$( "#"+id ).click(function() {
+			var url='rest/taxonomy/root/document';
+			 var cats=values.get(this.id);
+			putCategoriesToDocument(url,this.id,cats);
+			$(this).parent().children("a").toggleClass("trainable");
+			});
 	}
 }
 
 function putDocumentToCategory(url,category_id,document_id){
 	
 	var xhr = new XMLHttpRequest();
-	xhr.open("PUT", url+"/"+category_id, true);
+	xhr.open("PUT", url+"/"+category_id+"", true);
 	xhr.setRequestHeader('Content-type','text/plain; charset=utf-8');
 	xhr.onload = function () {
 		var text = xhr.responseText;
@@ -95,11 +119,36 @@ function putDocumentToCategory(url,category_id,document_id){
 	xhr.send(document_id);
 	
 }
+function putCategoriesToDocument(url,document_id,categories){
+	var newcategories=new Array();
+	var k=0;
+	for(var i=0;i<categories.length;i++){
+		if(!(categories[i]=='------'))
+		{
+		newcategories[k]=parent(taxonomy,categories[i]);
+		k++;
+		};
+	}
+	
+	var xhr = new XMLHttpRequest();
+	xhr.open("PUT", url+"/"+document_id+"", true);
+	xhr.setRequestHeader('Content-type','application/json; charset=utf-8');
+	xhr.onload = function () {
+		var text = xhr.responseText;
+		if (xhr.readyState == 4 && xhr.status == "200") {
+			console.table(text);
+		} else {
+			console.error(text);
+		}
+	}
+	xhr.send(JSON.stringify(newcategories));
+	
+}
 
 
 function deleteDocumentFromCategory(url,category_id,document_id){
 	var xhr = new XMLHttpRequest();
-	xhr.open("DELETE", url+"/"+category_id, true);
+	xhr.open("DELETE", url+"/"+category_id+"/?document_id="+document_id, true);
 	xhr.setRequestHeader('Content-type','text/plain; charset=utf-8');
 	xhr.onload = function () {
 		var text = xhr.responseText;
@@ -109,7 +158,7 @@ function deleteDocumentFromCategory(url,category_id,document_id){
 			console.error(text);
 		}
 	}
-	xhr.send(document_id);
+	//xhr.send(document_id);
 }
 
 function callbackTaxonomy(data){
@@ -117,7 +166,7 @@ function callbackTaxonomy(data){
 	
 
 	taxonomy=parsed;
-	//parents=//return result;
+	// parents=//return result;
 }
 function level1categories(taxonomy){
 	var branchlist=new Array();
@@ -144,8 +193,6 @@ function createSelectionMenu(taxonomy, selected,id){
 	if(!set_selected.has(selected_first)){
 		set_selected.add(selected_first)
 	result=result+'<p>';
-	
-	
 	var aux='<select id="'+id+'_'+k+'">';	
 	for( var i=0;i<branchlist.length;i++)
 		{
@@ -157,13 +204,14 @@ function createSelectionMenu(taxonomy, selected,id){
  
 		}
      
-       aux =aux+ '<select>';
-       result+=aux+'<p>';
+       aux =aux+ '</select>';
+       result+=aux+'</p>';
        
 	}
 	
 	}
-	result+='<button id=A'+id+'>add category</button>'
+	 result+='<button id='+id+'>add categories</button>'
+	 
      return result;
 }
 
@@ -216,7 +264,8 @@ function dayFinder() {
 	  var yyyy = dateSplit[0];
 	  var mm = dateSplit[1];
 	  var dd = dateSplit[2];
-	  var finalDate = new Date(mm +"/"+ dd +"/"+ yyyy); //new Date("06/03/2017");
+	  var finalDate = new Date(mm +"/"+ dd +"/"+ yyyy); // new
+														// Date("06/03/2017");
 	  var getDay = finalDate.getDay();
 	  var daysArray = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 	  document.getElementById("demo").innerHTML = daysArray[getDay];
@@ -244,3 +293,5 @@ indexs.forEach((index, i) => {
     cur = i
   })
 })
+
+

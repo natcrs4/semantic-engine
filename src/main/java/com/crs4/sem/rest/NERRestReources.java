@@ -24,9 +24,10 @@ import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import com.crs4.sem.analysis.JFlexSentenceTokenizer;
 import com.crs4.sem.model.TaggedTerm;
 import com.crs4.sem.model.Term;
+import com.crs4.sem.service.NERService;
 import com.crs4.sem.model.Document;
 import com.crs4.sem.model.Documentable;
-import com.crs4.sem.service.NERService;
+
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,7 @@ import com.crs4.sem.model.NewSearchResult;
 import com.crs4.sem.model.PairStringInteger;
 import com.crs4.sem.model.SearchResult;
 import com.crs4.sem.model.StatusSingleton;
+import com.crs4.sem.model.Term;
 import com.crs4.sem.neo4j.exceptions.CategoryNotFoundInTaxonomyException;
 import com.crs4.sem.neo4j.exceptions.TaxonomyNotFoundException;
 import com.crs4.sem.neo4j.service.TaxonomyService;
@@ -206,7 +208,8 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			@QueryParam("links") @DefaultValue("false") boolean links,
 			@QueryParam("threshold") @DefaultValue("2.9") double threshold,
 			@QueryParam("semantics") @DefaultValue("false") boolean semantics,
-			@QueryParam("classify") @DefaultValue("false") boolean classify
+			@QueryParam("classify") @DefaultValue("false") boolean classify,
+			@QueryParam("entities") @DefaultValue("false") boolean entities
 			) throws Exception {
 
 		
@@ -277,7 +280,33 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 		searchResult= this.addMetadataFromShado(shadoService,searchResult);
 		if(classify)
 			this.classifyDocuments(searchResult.getDocuments(), textClassifier);
+		if(entities)
+			this.detectEntities(searchResult.getDocuments(),this.nerservice);
 		return searchResult;
+	}
+
+	public void detectEntities(List<NewDocument> documents, NERService nerservice) {
+		
+		for(NewDocument doc:documents) {
+			Set<String> result= new HashSet<String>();
+			List<Term> taggedterms=new ArrayList<Term>();
+			try {
+				if(doc.getTitle()!=null&&!doc.getTitle().isEmpty())
+						taggedterms = nerservice.tagSentences(doc.getTitle());
+				List<Term> entities = nerservice.listOfEntities(taggedterms);
+				for(Term e:entities)
+					result.add(e.content()+":"+e.tag());
+				if(doc.getDescription()!=null&&!doc.getDescription().isEmpty())
+					taggedterms = nerservice.tagSentences(doc.getDescription());
+		         entities = nerservice.listOfEntities(taggedterms);
+			for(Term e:entities)
+				result.add(e.content()+":"+e.tag());
+			} catch (IOException e) {
+			  log.info(""+e);
+			}
+			String [] array= new String[result.size()];
+			doc.setEntities(result.toArray(array));
+		}		
 	}
 
 	private NewSearchResult addMetadataFromShado(ShadoService shadoService, NewSearchResult searchResult) {
@@ -325,6 +354,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 		for (NewDocument doc : documents) {
 			List<ScoredItem> result;
 			try {
+				if(!doc.getTrainable())
 				classifyDocument(textClassifier, doc);
 			} catch (IOException e) {
 				log.info(""+e);

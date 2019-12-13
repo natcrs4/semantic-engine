@@ -816,22 +816,34 @@ public class NewDocumentService extends HibernateService{
 		org.apache.lucene.search.Query luceneQuery = qb.keyword().onFields("trainable").matching("true").createQuery();
 		FullTextQuery fullTextQuery = fts.createFullTextQuery(luceneQuery, NewDocument.class);
 		List<Documentable> result = fullTextQuery.list();
+		List<Documentable> newresult= new ArrayList<Documentable>();
+		for(Documentable doc:result) {
+			if(doc.getCategories()!=null && checkCategories(doc.getCategories())) 
+				newresult.add(doc);
+		}
 		tx.commit();
 		session.close();
-		return result;
+		return newresult;
+	}
+	public boolean checkCategories(String [] categories) {
+		if( categories.length==0) return false;
+		for( String cat:categories)
+			if(cat==null) return false;
+		return true;
 	}
 	public Long classifyAll(TextClassifier classifier)
-	{    int big_batch=1000;
+	{    int big_batch=10000;
 	     int start=0;
 	     Long total=0L;
 	     Long result = this.classifyAll(classifier, start, big_batch);
 	     total=result;
-		 while(result>0) {
+	     int size=this.size();
+		 while(result>0&&total<size) {
 			 start=start+big_batch;
-			 result = this.classifyAll(classifier, start, big_batch);
-			 if(start%100000==0) optimizeIndex();
+			 result = this.classifyAll(classifier, start, big_batch);			
 			 total+=result;
 		 }
+		 optimizeIndex();
 		 return total;
 	}
 	public void migrate(NewDocumentService service, TextClassifier textClassifier, Set<String> keywords) {

@@ -39,9 +39,17 @@ TODO:
 	<br>
 	<!-- <button onclick="dayFinder()">Get Day</button> -->
 	<!-- <p id="demo"></p> -->
+	<div class="result">
+   <form class="result" action="rest/classifier/train/root" method="get" id="nameform">
+  documents: <input type="text" value="true" name="documents"><br>
+  keywords : <input type="text" value="false" name="keywords"><br>
+</form>
+
+
+<button class="result" type="submit" form="nameform" value="Submit">train</button>
+</div>
 	<section id="results"></section>
-
-
+	
 	<div class="container">
 		<span><div class="index">1</div>
 			<div class="index">2</div>

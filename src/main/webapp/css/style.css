@@ -65,6 +65,11 @@ form a:hover {
   clear: both;
   border-radius: 1em;
 }
+.trainable {
+
+  color: chartreuse;
+  
+}
 
 .result h3 {
   margin: 0 0 1em 0;

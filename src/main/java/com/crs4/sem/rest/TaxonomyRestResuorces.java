@@ -4,6 +4,7 @@ package com.crs4.sem.rest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -19,8 +20,10 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -35,6 +38,7 @@ import com.crs4.sem.neo4j.service.TaxonomyCSVReader;
 import com.crs4.sem.neo4j.service.TaxonomyService;
 import com.crs4.sem.producers.DocumentProducerType;
 import com.crs4.sem.producers.ServiceType;
+import com.crs4.sem.rest.exceptions.CategoryExceedException;
 import com.crs4.sem.service.NewDocumentService;
 
 import io.swagger.annotations.Api;
@@ -132,26 +136,67 @@ public class TaxonomyRestResuorces {
 		return this.taxonomyService.getKetwords(name, id);
 	}
 
+//	@PUT
+//	@Path("/{name}/document/{id}")
+//	// @Produces(MediaType.APPLICATION_JSON)
+//	@Consumes(MediaType.TEXT_PLAIN)
+//	@Produces(MediaType.TEXT_PLAIN)
+//	@ApiOperation(value = "put document to category ", notes = "Put document to category ")
+//	public Response putDocument(@ApiParam(value = "taxonomy name" ) @PathParam("name") @DefaultValue("root") String name,@ApiParam(value = "category id" ) @PathParam("id") String category_id,@ApiParam(value = "exclusive" ) @QueryParam("exclusive") @DefaultValue("false") Boolean exclusive  , String document_id) throws CategoryNotFoundException {
+//		log.info("put document "+document_id+" to taxonomy:"+name+"from category"+category_id);
+//		NewDocument doc = this.documentService.getById(document_id, true);
+//		String categories[]=null;
+//		if(doc.getTrainable()==false)
+//			categories= new String[1];
+//		else 
+//			categories=doc.getCategories();
+//		if(categories.length==2) throw new CategoryExceedException("exceed two categories");
+//		if(categories.length==1)
+//		{
+//			String [] newcategories= new String[2];
+//			newcategories[0]=categories[0];
+//			newcategories[1]=category_id;
+//			doc.setCategories(newcategories);
+//		}
+//		else {
+//			String [] newcategories= new String[1];
+//			newcategories[0]=category_id;
+//			doc.setCategories(newcategories);
+//		}
+//		
+//		
+//		doc.setTrainable(true);
+//		this.documentService.updateDocument(doc);
+//		this.taxonomyService.addDocument(category_id, document_id,exclusive);
+//		
+//		return Response.ok("added document to category "+category_id).build();
+//	}
+
 	@PUT
 	@Path("/{name}/document/{id}")
 	// @Produces(MediaType.APPLICATION_JSON)
-	@Consumes(MediaType.TEXT_PLAIN)
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.TEXT_PLAIN)
-	@ApiOperation(value = "put document to category ", notes = "Put document to category ")
-	public Response putDocument(@ApiParam(value = "taxonomy name" ) @PathParam("name") @DefaultValue("root") String name,@ApiParam(value = "category id" ) @PathParam("id") String category_id , String document_id) throws CategoryNotFoundException {
-		log.info("put document "+document_id+" to taxonomy:"+name+"from category"+category_id);
+	@ApiOperation(value = "put categories to document id", notes = "Put categories to document id ")
+	public Response putCategoriesToDocument(@ApiParam(value = "taxonomy name" ) @PathParam("name") @DefaultValue("root") String name,@ApiParam(value = "document id" ) @PathParam("id")  String document_id, String [] categories) 
+      throws CategoryNotFoundException {
+		log.info("put categories  to document id");
 		NewDocument doc = this.documentService.getById(document_id, true);
-		doc.setTrainable(true);
-		String categories[]=new String[1];
-		categories[0]=category_id;
+	    String [] oldvalues=doc.getCategories();
+		if(categories.length>2) throw new CategoryExceedException("exceed two categories");
 		doc.setCategories(categories);
 		
-		this.documentService.updateDocument(doc);
-		this.taxonomyService.addDocument(category_id, document_id,true);
 		
-		return Response.ok("added document to category "+category_id).build();
+		
+		doc.setTrainable(true);
+		this.documentService.updateDocument(doc);
+		for(String cat:oldvalues)
+			this.taxonomyService.deleteDocument(cat, document_id);
+		for(String cat:categories)
+		  this.taxonomyService.addDocument(cat, document_id,false);
+		
+		return Response.ok("added categories "+Arrays.toString(categories) + " to document "+ document_id).build();
 	}
-
 	@GET
 	@Path("/{name}/documents/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -177,7 +222,7 @@ public class TaxonomyRestResuorces {
     @Produces(MediaType.TEXT_PLAIN)
 	@Consumes(MediaType.TEXT_PLAIN)
 	@ApiOperation(value = "delete document", notes = "Delete document from taxonomy")
-	public Response deleteDocument(@ApiParam(value = "taxonomy name" ) @PathParam("name")  @DefaultValue("root")String name,String document_id) {
+	public Response deleteDocument(@ApiParam(value = "taxonomy name" ) @PathParam("name")  @DefaultValue("root")String name,@QueryParam("document_id")  String document_id) {
 		log.info("delete document "+document_id+" from taxonomy "+ name);
 		NewDocument doc = this.documentService.getById(document_id, true);
 	
@@ -193,7 +238,7 @@ public class TaxonomyRestResuorces {
     @Produces(MediaType.TEXT_PLAIN)
 	@Consumes(MediaType.TEXT_PLAIN)
 	@ApiOperation(value = "delete document", notes = "Delete document from category")
-	public Response deleteDocumentFromCategory(@ApiParam(value = "taxonomy name" ) @PathParam("name")  @DefaultValue("root")String name,@ApiParam(value = "category id" ) @PathParam("id") String id, String document_id) {
+	public Response deleteDocumentFromCategory(@ApiParam(value = "taxonomy name" ) @PathParam("name")  @DefaultValue("root")String name,@ApiParam(value = "category id" ) @PathParam("id") String id, @QueryParam("document_id")  String document_id) {
 		log.info("delete document "+document_id+" from taxonomy "+ name + "category"+id);
 		NewDocument doc = this.documentService.getById(document_id, true);	
 		String [] categories=doc.getCategories();

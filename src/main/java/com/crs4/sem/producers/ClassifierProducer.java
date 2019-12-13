@@ -85,7 +85,7 @@ public class ClassifierProducer  {
                 kdocs.add(doc);
 			}
 		}
-		//docs.addAll(kdocs);
+		docs.addAll(kdocs);
 		
 		if(!docs_.isEmpty())docs.addAll(docs_);
 		Documents kdocsreader = new DocumentReader(docs);

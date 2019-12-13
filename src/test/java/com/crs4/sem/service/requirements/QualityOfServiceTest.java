@@ -43,7 +43,7 @@ public class QualityOfServiceTest {
 			q=q.replace(",", "");
 			System.out.println(q);
 			WebTarget searchWebTarget 
-			  = webTarget.path("rest/documents/advancedsearch").queryParam("text", q);
+			  = webTarget.path("rest/documents/advancedsearch").queryParam("text", q).queryParam("histograms", true);
 			Invocation.Builder invocationBuilder 
 			  = searchWebTarget.request(MediaType.APPLICATION_JSON);
 			 long startTime = System.currentTimeMillis();
