@@ -18,6 +18,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
@@ -68,14 +69,8 @@ public class LuceneService {
 		public NewSearchResult parseSearch(String text, String query, Date from, Date to, int start, int maxresults,
 				boolean score, Analyzer analyzer,Boolean links) throws Exception {
 			BooleanClause.Occur[] flags = { BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD,
-					BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD,
-					BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD,
-					BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD,
-					BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD,
-					BooleanClause.Occur.SHOULD };
-			String fields[] = { "id", "url", "title", "description", "authors", "type", "source_id", "internal_id",
-					"publishDate", "links", "movies", "gallery", "attachments", "podcasts", "score", "neoid", "entities",
-					"categories", "trainable" };
+					BooleanClause.Occur.SHOULD};
+			String fields[] = { "url", "title", "description"};
 			BooleanClause.Occur[] flags_ = {};
 			String fields_[] = { "id", "url", "authors", "type", "source_id", "internal_id", "publishDate", "links",
 					"movies", "gallery", "attachments", "podcasts", "score", "entities", "trainable" };
@@ -87,11 +82,17 @@ public class LuceneService {
 	
 
 			
-				query= text+ " "+query ;
+				if(!text.isEmpty())
+					{
+					  text=" (url: "+text+ " )"+" (title: "+text+ " )"+" (description: "+text+ " )";
+					  query= text+ " " + query;
+					}
+				    
 				Query luceneQuery=null;
 				if (!query.trim().isEmpty()) {
 					// luceneQuery = queryparser.parse(query);
-					luceneQuery = MultiFieldQueryParser.parse(query, fields_, flags, analyzer);
+					QueryParser queryparser = new QueryParser("", analyzer);
+					luceneQuery = queryparser.parse(query);
 				}
 			
 				 Query resultQuery =luceneQuery;

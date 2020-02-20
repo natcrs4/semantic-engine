@@ -302,4 +302,106 @@ public class RequirementTest {
 				System.out.println(x+ " measure "+ evaluator.evaluate(x)+ " totals "+ evaluator.total(x));
 			
 		}
+	  
+	  @Test
+		public void testEnsemble() throws FileNotFoundException, IOException, ClassifierException, InstantiationException, IllegalAccessException, CategoryNotFoundInTaxonomyException{
+			long tot=6000L;
+			  Analyzer analyzer = this.produces();
+			  File neodirectory = new File("/tmp/test");
+			   if(neodirectory.exists())
+				   FileUtils.deleteRecursively(neodirectory);;
+			   TaxonomyService taxoservice = new TaxonomyService(new File("/tmp/test"));
+			   TaxonomyCSVReader.readTriple(new FileInputStream(new File("src/test/resources/SOS_270119_Tassonomia_rev5.csv")), taxoservice);
+				CategoryDictionary categoryDictionary = new CategoryDictionary();
+				Node root = taxoservice.searchCategory("root");
+				HClassifier<SVMClassifier> hclassifier;
+				String path="configurations/locale/hibernate.lucene.cfg2.xml";
+				File cfgFile=  new File(path);
+			    Configuration configure = HibernateConfigurationFactory.configureDocumentService(cfgFile);
+			   
+				NewDocumentService docservice= NewDocumentService.newInstance(configure);
+				
+				
+//					hclassifier = HClassifierBuilder.builder().species(SVMClassifier.class).root(root)
+//							.taxonomyService(taxoservice).categoryBuilder(categoryDictionary).build();
+//				   SVMClassifier svm = new SVMClassifier();
+//					hclassifier.setLevel1(false);
+					
+					SVMClassifier svm [] = new SVMClassifier[10];
+					  for(int i=0;i<10;i++)
+						  svm[i]= new SVMClassifier();
+					  EnsembleClassifier ensemble = EnsembleClassifier.builder().size(10).group(svm).selectionPolicy(new MajoritySelection()).build();
+					  
+					  EnsembleTextClassifier textClassifier= new EnsembleTextClassifier(10);
+					  textClassifier.setAnalyzer(analyzer);
+					  textClassifier.setClassifier(ensemble);
+					  textClassifier.setCategoryDictionary(new CategoryDictionary());
+					  textClassifier.setDictionary(new Dictionary());
+					  
+				//TextClassifierImpl textClassifier = new TextClassifierImpl(analyzer,hclassifier,categoryDictionary);
+				List<Documentable> docs= new ArrayList<Documentable>();
+				List<Documentable> docs_ = docservice.getTrainable();
+				String[] categories = taxoservice.branchLabels(root, false);
+				List<Documentable> kdocs = new ArrayList<Documentable>();
+				
+				
+				for (String category : categories) {
+					String[] keywords;
+					keywords = taxoservice.getKetwords("root", category);
+					//if(category.trim().length()==0) System.out.println("_____");
+					String[] categories_ = new String[1];
+					categories_[0] = category;
+					if(keywords!=null) 
+					for (int i = 0; i < keywords.length; i++) {
+						Documentable doc = Document.builder().title(keywords[i]).categories(categories_).build();
+		                kdocs.add(doc);
+					}
+				}
+				//docs.addAll(kdocs);
+				if(!docs_.isEmpty())docs.addAll(docs_);
+				docs=DocumentsUtil.expandUniLabel(docs);
+				Collections.shuffle(docs);
+				
+		DocumentsUtil.parentize(docs, taxoservice);
+				
+				DocumentReader documents = new DocumentReader(docs);
+				//textClassifier.train(kdocsreader);
+				Documents[] splitted = documents.split(0.6);
+			  Documents testset=splitted[1];
+			  Documents trainset=splitted[0];
+			textClassifier.train(trainset);
+			 
+			  //TextPrecision precision = TextPrecision.builder().documents(documents).textClassifier(textClassifier).build();
+			  
+			Set<Category> set= new HashSet<Category>(textClassifier.getCategoryDictionary().getCategories().values());
+			PMeasure macroPrecision = new MacroPrecision(1, set);
+			Evaluator evaluator= new ClassifierEvaluator( macroPrecision,tot);
+			evaluator.addDataset(testset, textClassifier);
+			System.out.println("Macro Precision"+evaluator.evaluate());
+			for(Category x:set)
+				if(evaluator.total(x)>0) 
+				System.out.println(x+ " measure "+ evaluator.evaluate(x)+ " totals "+ evaluator.total(x));
+			
+			MacroRecall macroRecall = new MacroRecall(macroPrecision);
+			evaluator= new ClassifierEvaluator( macroRecall,tot);
+			System.out.println("Macro Recall"+ evaluator.evaluate());
+			for(Category x:set)
+				if(evaluator.total(x)>0) 
+					System.out.println(x+ " measure "+ evaluator.evaluate(x)+ " totals "+ evaluator.total(x));
+			
+			MicroPrecision microPrecision = new MicroPrecision(macroPrecision);
+			evaluator= new ClassifierEvaluator( microPrecision,tot);
+			System.out.println("Micro Precision"+ evaluator.evaluate());
+			for(Category x:set)
+				if(evaluator.total(x)>0) 
+				System.out.println(x+ " measure "+ evaluator.evaluate(x)+ " totals "+ evaluator.total(x));
+			
+			MicroRecall microRecall = new MicroRecall(macroPrecision);
+			evaluator= new ClassifierEvaluator( microRecall,tot);
+			System.out.println("Micro Recall"+ evaluator.evaluate());
+			for(Category x:set)
+				if(evaluator.total(x)>0) 
+				System.out.println(x+ " measure "+ evaluator.evaluate(x)+ " totals "+ evaluator.total(x));
+			
+		}
 }

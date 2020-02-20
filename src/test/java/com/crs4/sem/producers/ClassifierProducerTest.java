@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.lucene.analysis.it.ItalianAnalyzer;
+import org.hibernate.cfg.Configuration;
 import org.junit.Test;
 import org.neo4j.io.fs.FileUtils;
 
@@ -19,6 +20,7 @@ import com.crs4.sem.neo4j.exceptions.CategoryNotFoundInTaxonomyException;
 import com.crs4.sem.neo4j.service.TaxonomyCSVReader;
 import com.crs4.sem.neo4j.service.TaxonomyService;
 import com.crs4.sem.service.DocumentService;
+import com.crs4.sem.service.HibernateConfigurationFactory;
 import com.crs4.sem.service.NewDocumentService;
 import com.mfl.sem.classifier.exception.ClassifierException;
 import com.mfl.sem.classifier.text.TextClassifier;
@@ -51,5 +53,23 @@ public class ClassifierProducerTest {
 		   TaxonomyService taxoservice = new TaxonomyService(new File("/tmp/test"));
 		   TaxonomyCSVReader.readTriple(new FileInputStream(new File("src/test/resources/SOS_181202_Tassonomia_rev1.csv")), taxoservice);
 		return taxoservice;
+	}
+	
+	@Test
+	public void producerEnsemble() throws InstantiationException, IllegalAccessException, IOException, ClassifierException, CategoryNotFoundInTaxonomyException {
+		ClassifierProducer producer = new ClassifierProducer();
+		producer.setAnalyzer(new ItalianClassifierAnalyzer());
+		TaxonomyService taxonomyService = this.buildTaxonomy();
+		File cfgFile = new File("configurations/locale/hibernate.lucene.cfg2.xml");
+		Configuration cfg = HibernateConfigurationFactory.configureDocumentService(cfgFile);
+		NewDocumentService docservice= new NewDocumentService(cfg);
+		producer.setDocservice(docservice);
+		producer.setTaxoservice(taxonomyService);
+		producer.init();
+		TextClassifier classifier = producer.producer();
+		List<ScoredItem> classes = classifier.classify(Document.builder().title("biologico").build());
+		assertEquals(classes.get(0).getLabel(),"cultura");
+		 classes = classifier.classify(Document.builder().title("diritti umani").build());
+		assertEquals(classes.get(0).getLabel(),"diritti umani");
 	}
 }

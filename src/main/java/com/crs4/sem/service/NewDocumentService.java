@@ -257,8 +257,8 @@ public class NewDocumentService extends HibernateService{
 		Session session = factory.openSession();
 		List<NewDocument> result = new ArrayList<NewDocument>();
 		FullTextSession fts = Search.getFullTextSession(session);
-		Transaction tx = fts.beginTransaction();
-		try {
+		//Transaction tx = fts.beginTransaction();
+		//try {
 			QueryBuilder qb = fts.getSearchFactory().buildQueryBuilder().forEntity(NewDocument.class).get();
 			Query textQuery = null;
 
@@ -307,28 +307,31 @@ public class NewDocumentService extends HibernateService{
 			FullTextQuery fullTextQuery = fts.createFullTextQuery(resultquery, NewDocument.class);
 			fullTextQuery.setFirstResult(start);
 			fullTextQuery.setMaxResults(maxresults);
-
+			//Criteria.ALIAS_TO_ENTITY_MAP
+			//fullTextQuery.setCriteriaQuery(criteria);
+            
 			// execute search
 			result = fullTextQuery.list();
-					
+			     if(links)
 					 for(  NewDocument doc:result)
-					 { if(links) {
+					 { 
 						 Hibernate.initialize(
 							 doc.getLinks());
 					 }
-					   else 
+					   else
+						   for(  NewDocument doc:result) {
 						   doc.setLinks(null);
 					 }
 			totaldocs = fullTextQuery.getResultSize();
-			tx.commit();
+			//tx.commit();
 
-		} catch (RuntimeException | ParseException e) {
-			if (tx != null)
-				tx.rollback();
-			throw e; // or display error message
-		} finally {
+//		} catch (RuntimeException | ParseException e) {
+//			if (tx != null)
+//				tx.rollback();
+//			throw e; // or display error message
+//		} finally {
 			session.close();
-		}
+//		}
         
 		NewSearchResult searchResult = NewSearchResult.builder().documents(result).totaldocs(totaldocs).build();
 		return searchResult;
@@ -508,9 +511,11 @@ public class NewDocumentService extends HibernateService{
 		fullTextSession.createIndexer(NewDocument.class )
 		.batchSizeToLoadObjects(30 )
 		.cacheMode( CacheMode.NORMAL )
-		.threadsToLoadObjects( 5 )
+		.threadsToLoadObjects(5)
 		.threadsForSubsequentFetching( 20 )
+		
 		.startAndWait();
+		
 		tx.commit();
 		session.close();
 		
@@ -615,6 +620,7 @@ public class NewDocumentService extends HibernateService{
 		IdentifierLoadAccess<NewDocument> search = fts.byId(NewDocument.class);
 		NewDocument doc = search.load(id);
 		 if(links)  Hibernate.initialize(doc.getLinks());
+		 else doc.setLinks(null);
 		tx.commit();
 		session.close();
 		return doc;

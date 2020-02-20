@@ -71,11 +71,13 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import lombok.Data;
 
-@Stateless
+//@Stateless
 //@ApplicationScoped
 @Path("/documents")
 @Api(value = "Documents", description = "Documents")
+@Data
 public class DocumentRestResources {
 
 	@Inject
@@ -212,7 +214,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			@QueryParam("entities") @DefaultValue("false") boolean entities
 			) throws Exception {
 
-		
+		long times = System.currentTimeMillis();
 		Date from_date = null;
 		Date to_date = null;
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
@@ -237,7 +239,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 		    	log.info(" categories "+ catlist.get(0));
 		    	query+= "  OR (categories: "+catlist.get(0).getLabel()+ ")";
 		}
-		NewSearchResult searchResult = this.luceneService.parseSearch(text, query, from_date, to_date, start, maxresults,
+		NewSearchResult searchResult = this.documentService.parseSearch(text, query, from_date, to_date, start, maxresults,
 				score, analyzer,links);
 		List<NewDocument> duplicated = documentService.removeDuplicated(searchResult.getDocuments(),threshold);
 		searchResult.setDuplicated(duplicated);
@@ -254,7 +256,7 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			}
 			else {
 				
-				NewSearchResult temp = this.luceneService.parseSearch(text, query, from_date, to_date, 0, samplesize,
+				NewSearchResult temp = this.documentService.parseSearch(text, query, from_date, to_date, 0, samplesize,
 						score, analyzer,links);
 				 duplicated = documentService.removeDuplicated(temp.getDocuments(),threshold);
 				temp.setDuplicated(duplicated);
@@ -282,6 +284,8 @@ public NewSearchResult search(@QueryParam("text") @DefaultValue("") String text,
 			this.classifyDocuments(searchResult.getDocuments(), textClassifier);
 		if(entities)
 			this.detectEntities(searchResult.getDocuments(),this.nerservice);
+		times=System.currentTimeMillis()-times;
+		System.out.println("advanced search time elapsed " +times);
 		return searchResult;
 	}
 

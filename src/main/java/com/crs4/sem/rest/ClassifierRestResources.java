@@ -37,6 +37,7 @@ import com.crs4.sem.model.Document;
 import com.crs4.sem.model.Documentable;
 import com.crs4.sem.model.NewDocument;
 import com.crs4.sem.neo4j.exceptions.CategoryNotFoundInTaxonomyException;
+import com.crs4.sem.neo4j.exceptions.TaxonomyNotFoundException;
 import com.crs4.sem.neo4j.service.TaxonomyCSVReader;
 import com.crs4.sem.neo4j.service.TaxonomyService;
 import com.crs4.sem.producers.AnalyzerType;
@@ -49,6 +50,7 @@ import com.crs4.sem.utils.DocumentsUtil;
 import com.mfl.sem.classifier.HClassifier;
 import com.mfl.sem.classifier.HClassifierBuilder;
 import com.mfl.sem.classifier.exception.ClassifierException;
+import com.mfl.sem.classifier.impl.EnsembleClassifier;
 import com.mfl.sem.classifier.impl.SVMClassifier;
 import com.mfl.sem.classifier.model.Category;
 import com.mfl.sem.classifier.model.CategoryDictionary;
@@ -60,8 +62,10 @@ import com.mfl.sem.classifier.performance.MacroRecall;
 import com.mfl.sem.classifier.performance.MicroPrecision;
 import com.mfl.sem.classifier.performance.MicroRecall;
 import com.mfl.sem.classifier.performance.PMeasure;
+import com.mfl.sem.classifier.policy.MajoritySelection;
 import com.mfl.sem.classifier.text.Documents;
 import com.mfl.sem.classifier.text.TextClassifier;
+import com.mfl.sem.classifier.text.impl.EnsembleTextClassifier;
 import com.mfl.sem.classifier.text.impl.TextClassifierImpl;
 import com.mfl.sem.dataset.reader.DocumentReader;
 import com.mfl.sem.model.ScoredItem;
@@ -146,21 +150,29 @@ public List<ScoredItem> classifyDoc( NewDocument doc) throws IOException, Interr
 @Produces(MediaType.TEXT_PLAIN)
 @Consumes(MediaType.APPLICATION_JSON)
 @ApiOperation(value = "classify document", notes = "Train classifier")
-public Response train(@PathParam("name") String stringroot,@QueryParam("documents") @DefaultValue("false") boolean withdocs,@QueryParam("keywords") @DefaultValue("false") boolean keys) throws IOException, InterruptedException, CategoryNotFoundInTaxonomyException, InstantiationException, IllegalAccessException, ClassifierException {
+public Response train(@PathParam("name") String stringroot,@QueryParam("documents") @DefaultValue("false") boolean withdocs,@QueryParam("keywords") @DefaultValue("false") boolean keys) throws IOException, InterruptedException, CategoryNotFoundInTaxonomyException, InstantiationException, IllegalAccessException, ClassifierException, TaxonomyNotFoundException {
 
 	log.info("train classifier " );
 	//aux=resourceContext.getResource(TextClassifier.class);
-
+	int ensize=10;
 	CategoryDictionary categoryDictionary = new CategoryDictionary();
 	Node root = taxonomyService.searchCategory(stringroot);
-	HClassifier<SVMClassifier> hclassifier = HClassifierBuilder.builder().species(SVMClassifier.class).root(root)
-			.taxonomyService(taxonomyService).categoryBuilder(categoryDictionary).build();
+//	HClassifier<SVMClassifier> hclassifier = HClassifierBuilder.builder().species(SVMClassifier.class).root(root)
+//			.taxonomyService(taxonomyService).categoryBuilder(categoryDictionary).build();
 	//SVMClassifier svm = new SVMClassifier();
-	TextClassifier textClassifier = new TextClassifierImpl(analyzer,hclassifier,categoryDictionary);
+	 SVMClassifier svm [] = new SVMClassifier[10];
+	  for(int i=0;i<ensize;i++)
+		  svm[i]= new SVMClassifier();
+	  EnsembleClassifier ensemble = EnsembleClassifier.builder().size(ensize).group(svm).selectionPolicy(new MajoritySelection()).build();
+	  
+	 
+	
+	//TextClassifier textClassifier = new TextClassifierImpl(analyzer,svm,categoryDictionary);
 	List<Documentable> docs= new ArrayList<Documentable>();
 	List<Documentable> docs_=new ArrayList<Documentable>();
 	if(withdocs)
-		docs_ = documentService.getTrainable();
+		docs_ =documentService.getTrainable();
+		//DocumentsUtil.getAllTrainableDocument(taxonomyService, documentService, "root",false);
 		
 	String[] categories = taxonomyService.branchLabels(root, false);
 	List<Documentable> kdocs = new ArrayList<Documentable>();
@@ -183,10 +195,11 @@ public Response train(@PathParam("name") String stringroot,@QueryParam("document
 	if(!docs_.isEmpty())
 		docs.addAll(docs_);
 	Documents kdocsreader = new DocumentReader(docs);
-	TextClassifierImpl aux = (TextClassifierImpl) textClassifier;
-	aux.setCategoryDictionary(new CategoryDictionary());
-	aux.setDictionary(new Dictionary());
-	aux.setClassifier(hclassifier);
+	EnsembleTextClassifier textClassifier= new EnsembleTextClassifier(ensize,ensemble,analyzer);
+//	TextClassifierImpl aux = (TextClassifierImpl) textClassifier;
+//	aux.setCategoryDictionary(new CategoryDictionary());
+//	aux.setDictionary(new Dictionary());
+//	aux.setClassifier(ensemble);
 	
    
 	 try {
@@ -218,19 +231,28 @@ public Response classifyDocuments(@PathParam("name") String stringroot) {
 @Produces(MediaType.APPLICATION_JSON)
 //@Consumes(MediaType.APPLICATION_JSON)
 @ApiOperation(value = "Evaluate micro and macro precision and recall and generate a report. Percentage of training set. Incudes  documents and keywords", notes = "Evaluate micro and macro precision and recall")
-public Map<String,List<String>> test(@PathParam("name") String stringroot,@QueryParam("percentage") @DefaultValue("0.6") Double percentual,@QueryParam("documents") @DefaultValue("true")Boolean bdoc,@QueryParam("keywords") @DefaultValue("false")Boolean key) throws CategoryNotFoundInTaxonomyException, InstantiationException, IllegalAccessException, IOException, ClassifierException {
+public Map<String,List<String>> test(@PathParam("name") String stringroot,@QueryParam("percentage") @DefaultValue("0.6") Double percentual,@QueryParam("documents") @DefaultValue("true")Boolean bdoc,@QueryParam("keywords") @DefaultValue("false")Boolean key) throws CategoryNotFoundInTaxonomyException, InstantiationException, IllegalAccessException, IOException, ClassifierException, TaxonomyNotFoundException {
 	    long tot=100000L;
  
 		CategoryDictionary categoryDictionary = new CategoryDictionary();
 		Node root = this.getTaxonomyService().searchCategory("root");
-		HClassifier<SVMClassifier> hclassifier;
-	    hclassifier = HClassifierBuilder.builder().species(SVMClassifier.class).root(root)
-					.taxonomyService(this.getTaxonomyService()).categoryBuilder(categoryDictionary).build();
-		   SVMClassifier svm = new SVMClassifier();
-			hclassifier.setLevel1(false);
-		TextClassifierImpl textClassifier = new TextClassifierImpl(analyzer,hclassifier,categoryDictionary);
+		int ensize=10;
+		//HClassifier<SVMClassifier> hclassifier;
+	   // hclassifier = HClassifierBuilder.builder().species(SVMClassifier.class).root(root)
+					//.taxonomyService(this.getTaxonomyService()).categoryBuilder(categoryDictionary).build();
+		//   SVMClassifier svm = new SVMClassifier();
+			//hclassifier.setLevel1(false);
+		
+		//TextClassifierImpl textClassifier = new TextClassifierImpl(analyzer,svm,categoryDictionary);
+		 SVMClassifier svm [] = new SVMClassifier[10];
+		  for(int i=0;i<ensize;i++)
+			  svm[i]= new SVMClassifier();
+		  EnsembleClassifier ensemble = EnsembleClassifier.builder().size(ensize).group(svm).selectionPolicy(new MajoritySelection()).build();
+		  
+
 		List<Documentable> docs= new ArrayList<Documentable>();
-		List<Documentable> docs_ = this.documentService.getTrainable();
+		//List<Documentable> docs_ = DocumentsUtil.getAllTrainableDocument(taxonomyService, documentService, "root");
+		List<Documentable> docs_ =documentService.getTrainable();
 		String[] categories = this.taxonomyService.branchLabels(root, false);
 		List<Documentable> kdocs = new ArrayList<Documentable>();
 		if(key) {
@@ -260,6 +282,7 @@ public Map<String,List<String>> test(@PathParam("name") String stringroot,@Query
 		Documents[] splitted = documents.split(percentual);
 	  Documents testset=splitted[1];
 	  Documents trainset=splitted[0];
+	  EnsembleTextClassifier textClassifier= new EnsembleTextClassifier(ensize,ensemble,analyzer);
 	textClassifier.train(trainset);
 	 
 	 Map<String,List<String>> result= new HashMap<String,List<String>>();

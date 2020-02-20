@@ -1,5 +1,6 @@
 package com.crs4.sem.service;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -18,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.aeonbits.owner.ConfigFactory;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -30,6 +32,7 @@ import com.crs4.sem.config.SemEngineConfig;
 import com.crs4.sem.model.Documentable;
 import com.crs4.sem.model.NewDocument;
 import com.crs4.sem.model.NewSearchResult;
+import com.crs4.sem.producers.AnalyzerProducer;
 import com.crs4.sem.rest.serializer.DateSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -225,7 +228,7 @@ public void getNatualId() {
 
 @Test
 public void testRebuildIndex() throws InterruptedException {
-	File cfgFile = new File("src/test/resources/hibernate.lucene.cfg2.xml");
+	File cfgFile = new File("configurations/locale/hibernate.lucene.cfg3.xml");
 	Configuration configure = HibernateConfigurationFactory.configureDocumentService(cfgFile);
 	NewDocumentService destination = new NewDocumentService(configure);
 	destination.rebuildIndex();
@@ -243,5 +246,17 @@ public void testUpdateDocument() {
      doc = destination.getById("2d7060eb02ec1c1b6a7312b4e4f4df069d07e027",true);
 	
 	assertTrue(doc.getTrainable());
+}
+
+@Test
+public void testParceSearch() throws Exception {
+	File cfgFile = new File("configurations/locale/hibernate.lucene.cfg3.xml");
+	Configuration configure = HibernateConfigurationFactory.configureDocumentService(cfgFile);
+	NewDocumentService documentService = new NewDocumentService(configure);
+	AnalyzerProducer analyzerprod = new AnalyzerProducer();
+	Analyzer analyzer = analyzerprod.produces();
+	String text="rifiuti tossici calabria";
+	NewSearchResult result = documentService.parseSearch(text, "",null , null, 0, 200, false, analyzer, false);
+	assertEquals(result.getDocuments().size(),200,0.1);
 }
 }

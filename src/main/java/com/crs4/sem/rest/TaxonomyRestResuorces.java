@@ -1,8 +1,12 @@
 
 package com.crs4.sem.rest;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,12 +27,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
+import javax.ws.rs.core.StreamingOutput;
 
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.neo4j.graphdb.Node;
 
+import com.crs4.sem.model.Documentable;
 import com.crs4.sem.model.NewDocument;
 import com.crs4.sem.neo4j.exceptions.CategoryNotFoundException;
 import com.crs4.sem.neo4j.exceptions.CategoryNotFoundInTaxonomyException;
@@ -40,6 +45,13 @@ import com.crs4.sem.producers.DocumentProducerType;
 import com.crs4.sem.producers.ServiceType;
 import com.crs4.sem.rest.exceptions.CategoryExceedException;
 import com.crs4.sem.service.NewDocumentService;
+import com.crs4.sem.utils.DocumentsUtil;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -347,6 +359,76 @@ public class TaxonomyRestResuorces {
 		log.info("upload taxonomy  " + fileDetail.getFileName() +" with triplet format");
 		TaxonomyCSVReader.readTriple(inputStream, taxonomyService);
 		return Response.ok().build();
+
+	}
+	
+	@GET
+	@Path("/{name}/documents/download")
+	@ApiOperation(value = "download taxonomy documents", notes = "download taxonomy documents")
+	public Response dowloadDocuments(@PathParam("name") @DefaultValue("root") String taxoname) throws TaxonomyNotFoundException, CategoryNotFoundInTaxonomyException, JsonGenerationException, JsonMappingException, IOException {
+		
+		
+		 List<NewDocument> list= DocumentsUtil.getAllTrainableDocument(taxonomyService, documentService, taxoname,true);
+		 
+		 StringWriter writer= new StringWriter();
+		
+		 ObjectMapper objectMapper = new ObjectMapper();
+		 objectMapper.setSerializationInclusion(Include.NON_NULL);
+	     objectMapper.writeValue(writer, list);
+		 return Response
+	                .ok(writer.toString(), MediaType.APPLICATION_OCTET_STREAM)
+	                .header("content-disposition","attachment; filename = "+taxoname+"_docs.json")
+	                .build();
+	}
+	
+	@GET
+	@Path("/{name}/documents/update")
+	@ApiOperation(value = "update set of documents. Useful when update taxonomy and documents", notes = "update documents")
+	public Response update(@PathParam("name") @DefaultValue("root") String taxoname) throws TaxonomyNotFoundException, CategoryNotFoundInTaxonomyException {
+		
+		
+		 List<NewDocument> list= DocumentsUtil.getAllTrainableDocument(taxonomyService, documentService, taxoname,true);
+//		 int size=list.size();
+//		 int slice=size/100;
+//		 int index=0;
+//		 for( int i=0;i<size;i+=slice) {
+//			 int  min=Math.min(size, i+slice);
+//		      List<NewDocument> sub = list.subList(i, min);
+//		 
+//			 documentService.saveOrUpdateAll(sub);
+//			 index=i;
+//		 }
+//		 if(index<size) {
+//			 List<NewDocument> sub = list.subList(index, size);
+			 
+			 documentService.saveOrUpdateAll(list);
+		// }
+			 
+		 return Response.ok("updated "+ list.size() + " documents").build();
+	}
+	
+	@POST
+	@Path("/{name}/documents/upload")
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	@ApiOperation(value = "upload documents ", notes = "Upload documents")
+	public Response uploadDocuments(@PathParam("name") @DefaultValue("root") String taxoname,@FormDataParam("file") InputStream inputStream,
+			@FormDataParam("file") FormDataContentDisposition fileDetail) throws JsonParseException, JsonMappingException, IOException, CategoryNotFoundException  {
+		log.info("upload documents " + fileDetail.getFileName() );
+		
+			
+		 ObjectMapper objectMapper = new ObjectMapper();
+	     List<NewDocument> documents=objectMapper.readValue(inputStream, new TypeReference<List<NewDocument>>(){});
+	    for(NewDocument doc:documents) {
+	 	for(String cat:doc.getCategories()) {
+	 		  if(cat!=null&&!cat.trim().isEmpty())
+			  this.taxonomyService.addDocument(cat, doc.getInternal_id(),false);
+	 	}
+	 	     
+	    }
+	    this.documentService.assignIdentifiers(documents);
+		this.documentService.checkDocuments(documents);
+	    this.documentService.saveOrUpdateAll(documents);
+		return Response.ok("uploaded "+ documents.size()+ " documents").build();
 
 	}
 

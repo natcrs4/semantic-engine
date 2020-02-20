@@ -16,16 +16,22 @@ import org.neo4j.graphdb.Node;
 import com.crs4.sem.model.Document;
 import com.crs4.sem.model.Documentable;
 import com.crs4.sem.neo4j.exceptions.CategoryNotFoundInTaxonomyException;
+import com.crs4.sem.neo4j.exceptions.TaxonomyNotFoundException;
 import com.crs4.sem.neo4j.service.TaxonomyService;
 import com.crs4.sem.service.DocumentService;
 import com.crs4.sem.service.NewDocumentService;
+import com.crs4.sem.utils.DocumentsUtil;
 import com.mfl.sem.classifier.HClassifier;
 import com.mfl.sem.classifier.HClassifierBuilder;
 import com.mfl.sem.classifier.exception.ClassifierException;
+import com.mfl.sem.classifier.impl.EnsembleClassifier;
 import com.mfl.sem.classifier.impl.SVMClassifier;
 import com.mfl.sem.classifier.model.CategoryDictionary;
+import com.mfl.sem.classifier.model.Dictionary;
+import com.mfl.sem.classifier.policy.MajoritySelection;
 import com.mfl.sem.classifier.text.Documents;
 import com.mfl.sem.classifier.text.TextClassifier;
+import com.mfl.sem.classifier.text.impl.EnsembleTextClassifier;
 import com.mfl.sem.classifier.text.impl.TextClassifierImpl;
 import com.mfl.sem.dataset.reader.DocumentReader;
 
@@ -62,13 +68,23 @@ public class ClassifierProducer  {
 		CategoryDictionary categoryDictionary = new CategoryDictionary();
 		Node root = taxoservice.searchCategory("root");
 		HClassifier<SVMClassifier> hclassifier;
+		int ensize=10;
 		try {
-			hclassifier = HClassifierBuilder.builder().species(SVMClassifier.class).root(root)
-					.taxonomyService(taxoservice).categoryBuilder(categoryDictionary).build();
+			//hclassifier = HClassifierBuilder.builder().species(SVMClassifier.class).root(root)
+					//.taxonomyService(taxoservice).categoryBuilder(categoryDictionary).build();
 			//SVMClassifier svm = new SVMClassifier();
-		TextClassifier textClassifier = new TextClassifierImpl(analyzer,hclassifier,categoryDictionary);
+		//TextClassifier textClassifier = new TextClassifierImpl(analyzer,svm,categoryDictionary);
+		 SVMClassifier svm [] = new SVMClassifier[ensize];
+		  for(int i=0;i<ensize;i++)
+			  svm[i]= new SVMClassifier();
+		  EnsembleClassifier ensemble = EnsembleClassifier.builder().size(ensize).group(svm).selectionPolicy(new MajoritySelection()).build();
+		  
+		  
+		 
+		  
 		List<Documentable> docs= new ArrayList<Documentable>();
 		List<Documentable> docs_ = docservice.getTrainable();
+		//List<Documentable> docs_=DocumentsUtil.getAllTrainableDocument(taxoservice, docservice, "root");
 		String[] categories = taxoservice.branchLabels(root, false);
 		List<Documentable> kdocs = new ArrayList<Documentable>();
 		
@@ -86,10 +102,14 @@ public class ClassifierProducer  {
 			}
 		}
 		docs.addAll(kdocs);
-		
+	
 		if(!docs_.isEmpty())docs.addAll(docs_);
+		docs=DocumentsUtil.expandUniLabel(docs);
+		System.out.println("docs size"+docs.size());
 		Documents kdocsreader = new DocumentReader(docs);
+		EnsembleTextClassifier textClassifier= new EnsembleTextClassifier(ensize,ensemble,analyzer);
 		textClassifier.train(kdocsreader);
+		
 		this.setTextClassifier(textClassifier);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -100,13 +120,7 @@ public class ClassifierProducer  {
 		} catch (CategoryNotFoundInTaxonomyException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		}  
 		
 	}
 	@Produces
