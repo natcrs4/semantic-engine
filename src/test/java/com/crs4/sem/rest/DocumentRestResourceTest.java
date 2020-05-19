@@ -25,7 +25,7 @@ public class DocumentRestResourceTest {
 		
 		DocumentRestResources rest = new DocumentRestResources();
 		
-		File cfgFile = new File("configurations/locale/hibernate.lucene.cfg2.xml");
+		File cfgFile = new File("configurations/locale/hibernate.lucene.cfg3.xml");
 		Configuration configure = HibernateConfigurationFactory.configureDocumentService(cfgFile);
 		NewDocumentService documentService = new NewDocumentService(configure);
 		

@@ -40,6 +40,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.hash.Hashing;
 
 import info.debatty.java.stringsimilarity.Damerau;
+import info.debatty.java.stringsimilarity.Jaccard;
 import info.debatty.java.stringsimilarity.JaroWinkler;
 import io.swagger.annotations.ApiModel;
 import lombok.AllArgsConstructor;
@@ -83,8 +84,8 @@ public class NewDocument implements Documentable{
 	private String title;
 	
 	@Lob
-   @Field(index=Index.YES, analyze=Analyze.YES, store=Store.YES)
-	 @EqualsAndHashCode.Exclude
+    @Field(index=Index.YES, analyze=Analyze.YES, store=Store.YES)
+	@EqualsAndHashCode.Exclude
 	private String description;
  
 	@Lob
@@ -258,12 +259,20 @@ public class NewDocument implements Documentable{
 	}
 
 	public double simile(NewDocument doc) {
-		JaroWinkler d =  new JaroWinkler();
-		double aux = d.similarity(this.getTitle()==null?"":this.getTitle(), doc.getTitle()==null?"":doc.getTitle())
-				+ d.similarity(this.getDescription()==null?"":this.getDescription(), doc.getDescription()==null?"":doc.getDescription());
-		double urldist = d.similarity(this.getUrl(), doc.getUrl());
+		 Jaccard d = new Jaccard();
+		 String title=this.getTitle()==null?"":this.getTitle();
+		 String description=this.getDescription()==null?"":this.getDescription();
+		 String title2=doc.getTitle()==null?"":doc.getTitle();
+		 String description2=doc.getDescription()==null?"":doc.getDescription();
+		 double aux=0d;
+	     if(title.equals(title2))
+	    	 aux+=1;
+	     if(description.equals(description2))
+	    	 aux++;
+		
+		//double urldist = d.similarity(this.getUrl(), doc.getUrl());
 
-		return aux + urldist;
+		return aux+1 ;//+ urldist;
 	}
 	
 }

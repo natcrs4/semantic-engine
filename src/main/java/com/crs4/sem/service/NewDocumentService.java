@@ -29,6 +29,7 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.hibernate.CacheMode;
 import org.hibernate.Criteria;
+import org.hibernate.FetchMode;
 import org.hibernate.FlushMode;
 import org.hibernate.Hibernate;
 import org.hibernate.IdentifierLoadAccess;
@@ -241,6 +242,7 @@ public class NewDocumentService extends HibernateService{
 	
 	public NewSearchResult parseSearch(String text, String query, Date from, Date to, int start, int maxresults,
 			boolean score, Analyzer analyzer,Boolean links) throws Exception {
+		long times = System.currentTimeMillis();
 		BooleanClause.Occur[] flags = { BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD,
 				BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD,
 				BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD, BooleanClause.Occur.SHOULD,
@@ -304,7 +306,9 @@ public class NewDocumentService extends HibernateService{
 				resultquery = new ScoreRankScoreQuery(resultquery);
 			// FullTextQuery fullTextQuery = fts.createFullTextQuery(customQuery,
 			// Document.class);
-			FullTextQuery fullTextQuery = fts.createFullTextQuery(resultquery, NewDocument.class);
+//			Criteria criteria = fts.createCriteria(NewDocument.class);
+//			criteria.setFetchMode("description",FetchMode.LAZY );
+			FullTextQuery fullTextQuery = fts.createFullTextQuery(resultquery, NewDocument.class);//.setCriteriaQuery(criteria);
 			fullTextQuery.setFirstResult(start);
 			fullTextQuery.setMaxResults(maxresults);
 			//Criteria.ALIAS_TO_ENTITY_MAP
@@ -321,6 +325,7 @@ public class NewDocumentService extends HibernateService{
 					   else
 						   for(  NewDocument doc:result) {
 						   doc.setLinks(null);
+						   
 					 }
 			totaldocs = fullTextQuery.getResultSize();
 			//tx.commit();
@@ -330,6 +335,7 @@ public class NewDocumentService extends HibernateService{
 //				tx.rollback();
 //			throw e; // or display error message
 //		} finally {
+			     System.out.println("parse search :" + (System.currentTimeMillis()-times));
 			session.close();
 //		}
         
@@ -1065,6 +1071,7 @@ public class NewDocumentService extends HibernateService{
 	}
 	
 	public List<NewDocument> removeDuplicated(List<NewDocument> documents,double threshold){
+		long times = System.currentTimeMillis();
 		List<NewDocument> result=new ArrayList<NewDocument>();
 		for( int i=0;i<documents.size();i++) {
 			for( int j=i+1;j<documents.size();j++) {
@@ -1074,6 +1081,7 @@ public class NewDocumentService extends HibernateService{
 			}
 		}	
 		documents.removeAll(result);
+		System.out.println("remove duplicated "+ (System.currentTimeMillis()-times));
 		return result;			
 	}
 	public List<NewDocument> searchEquals(String title, String description, String url, int start, int maxresults,float th) throws MalformedQueryException{

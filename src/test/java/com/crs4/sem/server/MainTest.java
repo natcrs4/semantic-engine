@@ -71,12 +71,12 @@ public class MainTest {
         final JmxReporter reporter = JmxReporter.forRegistry(METRIC_REGISTRY).build();
         reporter.start();
         logger.info("........");
-        CLStaticHttpHandler staticHttpHandler = new CLStaticHttpHandler(MainTest.class.getClassLoader(), "swagger-ui/");
-        server.getServerConfiguration().addHttpHandler(staticHttpHandler, "/docs");
+        //CLStaticHttpHandler staticHttpHandler = new CLStaticHttpHandler(MainTest.class.getClassLoader(), "swagger-ui/");
+       // server.getServerConfiguration().addHttpHandler(staticHttpHandler, "/docs");
        
         logger.info(getBaseUri());
 
-        Runtime.getRuntime().addShutdownHook(new Thread(server::shutdown));
+       // Runtime.getRuntime().addShutdownHook(new Thread(server::shutdown));
         Thread.currentThread();
     }
 }
